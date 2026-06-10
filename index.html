@@ -673,7 +673,7 @@ select.form-control {
   <div class="page" id="page-courses">
     <div class="page-header">
       <div class="page-title">📝 我的课程</div>
-      <button class="btn btn-primary" id="addCourseBtn">＋ 添加课程</button>
+      <button class="btn btn-primary" id="addCourseBtn" onclick="document.getElementById('page-courses').classList.remove('active');document.getElementById('page-add').classList.add('active');document.body.style.overflow='hidden';setTimeout(function(){document.getElementById('courseName').focus();},400);">＋ 添加课程</button>
     </div>
     <div class="card">
       <div class="table-wrap">
@@ -698,7 +698,7 @@ select.form-control {
   <!-- ===== 添加/编辑课程 ===== -->
   <div class="page" id="page-add">
     <div class="page-header" style="flex-direction:row;align-items:center;flex-wrap:nowrap">
-      <button class="btn btn-outline btn-sm" id="addBackBtn">← 返回</button>
+      <button class="btn btn-outline btn-sm" id="addBackBtn" onclick="document.getElementById('page-add').classList.remove('active');document.getElementById('page-courses').classList.add('active');document.body.style.overflow='';">← 返回</button>
       <div class="page-title" id="addPageTitle">添加课程</div>
       <span></span>
     </div>
@@ -728,8 +728,8 @@ select.form-control {
         </div>
       </div>
       <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:8px">
-        <button class="btn btn-outline" id="addCancelBtn">取消</button>
-        <button class="btn btn-primary" id="addSaveBtn">💾 保存</button>
+        <button class="btn btn-outline" id="addCancelBtn" onclick="document.getElementById('page-add').classList.remove('active');document.getElementById('page-courses').classList.add('active');document.body.style.overflow='';">取消</button>
+        <button class="btn btn-primary" id="addSaveBtn" onclick="saveCourse()">💾 保存</button>
       </div>
     </div>
     <input type="hidden" id="editCourseId" value="">
