@@ -374,11 +374,9 @@ tbody tr:hover { background: #FFFAF8; border-radius: 12px; }
 /* ========== 模态框 ========== */
 .modal-overlay {
   display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(30,27,46,0.6); /* 加深背景色，弥补去掉 blur */
-  z-index: 1000;
+  background: rgba(30,27,46,0.6);
+  z-index: 9999; /* 提高到最高，确保不被任何元素遮挡 */
   align-items: center; justify-content: center;
-  overscroll-behavior: contain;
-  -webkit-transform: translateZ(0); /* iOS Safari fixed 定位兼容 */
 }
 
 .modal-overlay.show { display: flex; }
