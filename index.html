@@ -1011,35 +1011,55 @@ function init() {
 
 // ==================== 事件绑定（全部用 addEventListener，跨平台最可靠） ====================
 function bindEvents() {
-  // 汉堡菜单
+  // 汉堡菜单（click + touchend 双保险）
   document.getElementById("mobileMenuBtn").addEventListener("click", function(e) {
+    e.stopPropagation();
+    toggleSidebar();
+  });
+  document.getElementById("mobileMenuBtn").addEventListener("touchend", function(e) {
+    e.preventDefault();
     e.stopPropagation();
     toggleSidebar();
   });
   // 遮罩关闭
   document.getElementById("sidebarBackdrop").addEventListener("click", toggleSidebar);
+  document.getElementById("sidebarBackdrop").addEventListener("touchend", function(e) {
+    e.preventDefault();
+    toggleSidebar();
+  });
 
   // 侧边栏导航
   document.querySelectorAll(".nav-item").forEach(function(el) {
     el.addEventListener("click", function() {
       switchPage(this.getAttribute("data-page"), this);
     });
+    el.addEventListener("touchend", function(e) {
+      e.preventDefault();
+      switchPage(this.getAttribute("data-page"), this);
+    });
   });
 
-  // 添加课程按钮
+  // 添加课程按钮（click + touchend 双保险）
   document.getElementById("addCourseBtn").addEventListener("click", function() { openModal(); });
+  document.getElementById("addCourseBtn").addEventListener("touchend", function(e) {
+    e.preventDefault();
+    openModal();
+  });
 
   // 模态框按钮
   document.getElementById("modalCloseBtn").addEventListener("click", closeModal);
+  document.getElementById("modalCloseBtn").addEventListener("touchend", function(e) { e.preventDefault(); closeModal(); });
   document.getElementById("modalCancelBtn").addEventListener("click", closeModal);
+  document.getElementById("modalCancelBtn").addEventListener("touchend", function(e) { e.preventDefault(); closeModal(); });
   document.getElementById("modalSaveBtn").addEventListener("click", saveCourse);
+  document.getElementById("modalSaveBtn").addEventListener("touchend", function(e) { e.preventDefault(); saveCourse(); });
 
   // 模态框外部点击关闭
   document.getElementById("modalOverlay").addEventListener("click", function(e) {
     if (e.target === this) closeModal();
   });
 
-  // 自动补全列表 - click 事件委托（最兼容）
+  // 自动补全列表 - click 事件委托
   document.getElementById("autocompleteList").addEventListener("click", function(e) {
     var item = e.target.closest(".autocomplete-item");
     if (item) {
@@ -1057,18 +1077,26 @@ function bindEvents() {
     }
   }, {passive: false});
 
-  // 我的课程表格 - 编辑/删除按钮委托
-  document.getElementById("myCourseTable").addEventListener("click", function(e) {
+  // 我的课程表格 - 编辑/删除/空状态按钮委托（click + touchend 双保险）
+  function handleCourseTableAction(e) {
     var btn = e.target.closest("button");
     if (!btn) return;
     var id = parseInt(btn.getAttribute("data-id"));
     if (btn.classList.contains("edit-btn")) editCourse(id);
     if (btn.classList.contains("del-btn")) deleteCourse(id);
     if (btn.classList.contains("empty-add-btn")) openModal();
+  }
+  document.getElementById("myCourseTable").addEventListener("click", handleCourseTableAction);
+  document.getElementById("myCourseTable").addEventListener("touchend", function(e) {
+    var btn = e.target.closest("button");
+    if (btn && (btn.classList.contains("edit-btn") || btn.classList.contains("del-btn") || btn.classList.contains("empty-add-btn"))) {
+      e.preventDefault();
+      handleCourseTableAction(e);
+    }
   });
 
-  // 推荐列表 - 快速添加按钮委托
-  document.getElementById("recommendList").addEventListener("click", function(e) {
+  // 推荐列表 - 快速添加按钮委托（click + touchend 双保险）
+  function handleRecommendAction(e) {
     var btn = e.target.closest(".quick-add-btn");
     if (!btn) return;
     quickAdd(
@@ -1077,6 +1105,13 @@ function bindEvents() {
       parseInt(btn.getAttribute("data-cred")),
       btn.getAttribute("data-online") === "true"
     );
+  }
+  document.getElementById("recommendList").addEventListener("click", handleRecommendAction);
+  document.getElementById("recommendList").addEventListener("touchend", function(e) {
+    if (e.target.closest(".quick-add-btn")) {
+      e.preventDefault();
+      handleRecommendAction(e);
+    }
   });
 
   // 键盘导航（仅桌面）
