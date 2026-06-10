@@ -673,7 +673,7 @@ select.form-control {
   <div class="page" id="page-courses">
     <div class="page-header">
       <div class="page-title">📝 我的课程</div>
-      <button class="btn btn-primary" id="addCourseBtn" onclick="document.getElementById('page-courses').classList.remove('active');document.getElementById('page-add').classList.add('active');document.body.style.overflow='hidden';setTimeout(function(){document.getElementById('courseName').focus();},400);">＋ 添加课程</button>
+      <button class="btn btn-primary" id="addCourseBtn" onclick="var f=document.getElementById('inlineAddForm');if(f.style.display==='block'){f.style.display='none'}else{f.style.display='block';document.getElementById('courseName').focus()}">＋ 添加课程</button>
     </div>
     <div class="card">
       <div class="table-wrap">
@@ -692,49 +692,47 @@ select.form-control {
       </div>
     </div>
     <div style="margin-top:16px;font-size:14px;color:var(--text-soft)" id="myCoursesSummary"></div>
+
+    <!-- 添加课程表单（直接嵌入页面，不用弹窗） -->
+    <div id="inlineAddForm" style="display:none;margin-top:16px">
+      <div class="card">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+          <strong id="inlineFormTitle">添加课程</strong>
+          <button class="btn btn-outline btn-sm" onclick="document.getElementById('inlineAddForm').style.display='none'">✕ 关闭</button>
+        </div>
+        <div class="form-group">
+          <label>课程名称 *</label>
+          <div class="autocomplete-wrap">
+            <input class="form-control" id="courseName" placeholder="输入关键词自动搜索课程…" autocomplete="off" oninput="filterSuggestions()" onfocus="filterSuggestions()">
+            <div class="autocomplete-list" id="autocompleteList"></div>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>所属分类 *</label>
+            <select class="form-control" id="courseCategory"><option value="">请选择</option></select>
+          </div>
+          <div class="form-group">
+            <label>学分</label>
+            <select class="form-control" id="courseCredits">
+              <option value="1">1 学分</option>
+              <option value="2" selected>2 学分</option>
+              <option value="3">3 学分</option>
+              <option value="4">4 学分</option>
+            </select>
+          </div>
+        </div>
+        <div style="display:flex;gap:10px;justify-content:flex-end">
+          <button class="btn btn-outline" onclick="document.getElementById('inlineAddForm').style.display='none'">取消</button>
+          <button class="btn btn-primary" id="inlineSaveBtn" onclick="saveCourse()">💾 保存</button>
+        </div>
+      </div>
+      <input type="hidden" id="editCourseId" value="">
+      <input type="hidden" id="courseOnline" value="false">
+    </div>
   </div>
 
 
-  <!-- ===== 添加/编辑课程 ===== -->
-  <div class="page" id="page-add">
-    <div class="page-header" style="flex-direction:row;align-items:center;flex-wrap:nowrap">
-      <button class="btn btn-outline btn-sm" id="addBackBtn" onclick="document.getElementById('page-add').classList.remove('active');document.getElementById('page-courses').classList.add('active');document.body.style.overflow='';">← 返回</button>
-      <div class="page-title" id="addPageTitle">添加课程</div>
-      <span></span>
-    </div>
-    <div class="card">
-      <div class="form-group">
-        <label>课程名称 *</label>
-        <div class="autocomplete-wrap">
-          <input class="form-control" id="courseName" placeholder="输入关键词自动搜索课程…" autocomplete="off" oninput="filterSuggestions()" onfocus="filterSuggestions()">
-          <div class="autocomplete-list" id="autocompleteList"></div>
-        </div>
-      </div>
-      <div class="form-row">
-        <div class="form-group">
-          <label>所属分类 *</label>
-          <select class="form-control" id="courseCategory">
-            <option value="">请选择</option>
-          </select>
-        </div>
-        <div class="form-group">
-          <label>学分</label>
-          <select class="form-control" id="courseCredits">
-            <option value="1">1 学分</option>
-            <option value="2" selected>2 学分</option>
-            <option value="3">3 学分</option>
-            <option value="4">4 学分</option>
-          </select>
-        </div>
-      </div>
-      <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:8px">
-        <button class="btn btn-outline" id="addCancelBtn" onclick="document.getElementById('page-add').classList.remove('active');document.getElementById('page-courses').classList.add('active');document.body.style.overflow='';">取消</button>
-        <button class="btn btn-primary" id="addSaveBtn" onclick="saveCourse()">💾 保存</button>
-      </div>
-    </div>
-    <input type="hidden" id="editCourseId" value="">
-    <input type="hidden" id="courseOnline" value="false">
-  </div>
 
 </main>
 
@@ -1040,13 +1038,7 @@ function bindEvents() {
     openModal();
   });
 
-  // 添加页 - 返回/取消/保存按钮
-  document.getElementById("addBackBtn").addEventListener("click", closeModal);
-  document.getElementById("addBackBtn").addEventListener("touchend", function(e) { e.preventDefault(); closeModal(); });
-  document.getElementById("addCancelBtn").addEventListener("click", closeModal);
-  document.getElementById("addCancelBtn").addEventListener("touchend", function(e) { e.preventDefault(); closeModal(); });
-  document.getElementById("addSaveBtn").addEventListener("click", saveCourse);
-  document.getElementById("addSaveBtn").addEventListener("touchend", function(e) { e.preventDefault(); saveCourse(); });
+  // 内联表单按钮已改用纯内联 onclick，无需额外绑定
 
   // 自动补全列表 - click 事件委托
   document.getElementById("autocompleteList").addEventListener("click", function(e) {
@@ -1136,9 +1128,9 @@ function repositionAutocomplete() {
   list.style.width = rect.width + 'px';
 }
 
-// ESC 返回课程列表
+// ESC 关闭内联表单
 document.addEventListener("keydown", function(e) {
-  if (e.key === "Escape" && document.getElementById("page-add").classList.contains("active")) {
+  if (e.key === "Escape" && document.getElementById("inlineAddForm").style.display === "block") {
     closeModal();
   }
 });
@@ -1469,17 +1461,17 @@ function quickAdd(name, category, credits, online) {
   renderDashboard();
 }
 
-// ==================== 添加/编辑课程页 ====================
+// ==================== 添加/编辑课程 ====================
 function openModal(courseData) {
-  // 显示添加页面
-  document.querySelectorAll(".page").forEach(function(p) { p.classList.remove("active"); });
-  document.getElementById("page-add").classList.add("active");
-  document.body.style.overflow = "hidden";
+  // 显示内联表单
+  document.getElementById("inlineAddForm").style.display = "block";
+  // 滚动到表单
+  document.getElementById("inlineAddForm").scrollIntoView({behavior: "smooth"});
 
   if (courseData) {
     // 编辑模式
-    document.getElementById("addPageTitle").textContent = "编辑课程";
-    document.getElementById("addSaveBtn").textContent = "💾 更新";
+    document.getElementById("inlineFormTitle").textContent = "编辑课程";
+    document.getElementById("inlineSaveBtn").textContent = "💾 更新";
     document.getElementById("editCourseId").value = courseData.id;
     document.getElementById("courseName").value = courseData.name;
     document.getElementById("courseCategory").value = courseData.category;
@@ -1487,27 +1479,22 @@ function openModal(courseData) {
     document.getElementById("courseOnline").value = courseData.online ? "true" : "false";
   } else {
     // 新增模式
-    document.getElementById("addPageTitle").textContent = "添加课程";
-    document.getElementById("addSaveBtn").textContent = "💾 保存";
+    document.getElementById("inlineFormTitle").textContent = "添加课程";
+    document.getElementById("inlineSaveBtn").textContent = "💾 保存";
     document.getElementById("editCourseId").value = "";
     document.getElementById("courseName").value = "";
     document.getElementById("courseCategory").value = "";
     document.getElementById("courseCredits").value = "2";
     document.getElementById("courseOnline").value = "false";
   }
-  // 延迟聚焦
   setTimeout(function() {
     document.getElementById("courseName").focus();
   }, 400);
 }
 
 function closeModal() {
-  // 返回我的课程页
-  document.querySelectorAll(".page").forEach(function(p) { p.classList.remove("active"); });
-  document.getElementById("page-courses").classList.add("active");
-  document.body.style.overflow = "";
+  document.getElementById("inlineAddForm").style.display = "none";
   document.getElementById("autocompleteList").classList.remove("show");
-  currentPage = "courses";
   renderMyCourses();
 }
 
