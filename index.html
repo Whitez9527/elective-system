@@ -2,7 +2,8 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<style>html { touch-action: manipulation; }</style>
 <title>📚 选修课助手</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -379,6 +380,7 @@ tbody tr:hover { background: #FFFAF8; border-radius: 12px; }
   -webkit-backdrop-filter: blur(4px);
   z-index: 1000;
   align-items: center; justify-content: center;
+  overscroll-behavior: contain;
 }
 
 .modal-overlay.show { display: flex; }
@@ -389,6 +391,8 @@ tbody tr:hover { background: #FFFAF8; border-radius: 12px; }
   overflow-y: auto;
   box-shadow: 0 30px 70px rgba(30,27,46,0.2), 0 0 0 1px rgba(0,0,0,0.05);
   animation: modalIn 0.35s cubic-bezier(0.16,1,0.3,1);
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
 }
 
 @keyframes modalIn {
@@ -460,6 +464,8 @@ select.form-control {
   padding: 11px 16px; cursor: pointer; font-size: 14px;
   display: flex; justify-content: space-between; align-items: center;
   border-bottom: 1px solid #F8F2EE; transition: all 0.15s;
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
 }
 
 .autocomplete-item:last-child { border-bottom: none; }
@@ -650,7 +656,7 @@ select.form-control {
   <div class="page active" id="page-dashboard">
     <div class="page-header">
       <div class="page-title">📊 学习仪表盘</div>
-      <span style="font-size:13px;color:var(--text-secondary)">截止当前学期累计统计</span>
+      <span style="font-size:13px;color:var(--text-soft)">截止当前学期累计统计</span>
     </div>
     <div class="stat-grid" id="statGrid"></div>
     <div class="card" style="margin-bottom:20px">
@@ -658,12 +664,12 @@ select.form-control {
       <div class="category-grid" id="categoryGrid"></div>
     </div>
     <div class="card" style="margin-bottom:20px">
-      <h3 style="margin-bottom:14px">📋 毕业要求完成情况 <span style="font-size:12px;color:var(--text-secondary)">通识≥7学分 · 艺术≥2学分 · 思政≥1学分 · 创新创业≥2学分 · 六大类各≥1门</span></h3>
+      <h3 style="margin-bottom:14px">📋 毕业要求完成情况 <span style="font-size:12px;color:var(--text-soft)">通识≥7学分 · 艺术≥2学分 · 思政≥1学分 · 创新创业≥2学分 · 六大类各≥1门</span></h3>
       <div class="gap-list" id="dashboardGapList"></div>
     </div>
     <div class="card">
       <h3 style="margin-bottom:14px">💡 推荐选课</h3>
-      <p style="font-size:13px;color:var(--text-secondary);margin-bottom:14px">以下课程可以帮你补足未满足的要求，点击即可添加到我的课程</p>
+      <p style="font-size:13px;color:var(--text-soft);margin-bottom:14px">以下课程可以帮你补足未满足的要求，点击即可添加到我的课程</p>
       <div id="recommendList"></div>
     </div>
   </div>
@@ -690,7 +696,7 @@ select.form-control {
         </table>
       </div>
     </div>
-    <div style="margin-top:16px;font-size:14px;color:var(--text-secondary)" id="myCoursesSummary"></div>
+    <div style="margin-top:16px;font-size:14px;color:var(--text-soft)" id="myCoursesSummary"></div>
   </div>
 
 
@@ -1316,7 +1322,7 @@ function renderRecommendations(catStats) {
     }
   }
 
-  document.getElementById("recommendList").innerHTML = html || '<div style="color:var(--text-secondary)">暂无推荐</div>';
+  document.getElementById("recommendList").innerHTML = html || '<div style="color:var(--text-soft)">暂无推荐</div>';
 }
 
 // 快速添加课程
@@ -1335,6 +1341,7 @@ function escJs(str) {
 // ==================== 模态框 ====================
 function openModal(courseData) {
   document.getElementById("modalOverlay").classList.add("show");
+  document.body.style.overflow = "hidden"; // 防止背景滚动
 
   if (courseData) {
     // 编辑模式
@@ -1355,15 +1362,21 @@ function openModal(courseData) {
     document.getElementById("courseCredits").value = "2";
     document.getElementById("courseOnline").value = "false";
   }
+  // 移动端延迟聚焦，等动画完成
+  setTimeout(() => {
+    document.getElementById("courseName").focus();
+  }, 400);
 }
 
 function closeModal() {
   document.getElementById("modalOverlay").classList.remove("show");
   document.getElementById("autocompleteList").classList.remove("show");
+  document.body.style.overflow = ""; // 恢复背景滚动
 }
 
 // ==================== 自动补全 ====================
 let acSelectedIndex = -1;
+let acMatches = []; // 缓存当前匹配结果，避免 selectSuggestion 重复过滤
 
 function filterSuggestions() {
   const input = document.getElementById("courseName");
@@ -1372,23 +1385,24 @@ function filterSuggestions() {
 
   if (!query) {
     list.classList.remove("show");
+    acMatches = [];
     return;
   }
 
   // Search in COURSE_LIBRARY
-  const matches = COURSE_LIBRARY.filter(c =>
+  acMatches = COURSE_LIBRARY.filter(c =>
     c.name.toLowerCase().includes(query)
-  ).slice(0, 15); // max 15 results
+  ).slice(0, 15);
 
-  if (matches.length === 0) {
+  if (acMatches.length === 0) {
     list.innerHTML = '<div class="autocomplete-no-result">未找到匹配课程，可手动输入</div>';
     list.classList.add("show");
     return;
   }
 
   acSelectedIndex = -1;
-  list.innerHTML = matches.map((c, i) => `
-    <div class="autocomplete-item" data-index="${i}" onmousedown="selectSuggestion(${i})">
+  list.innerHTML = acMatches.map((c, i) => `
+    <div class="autocomplete-item" data-index="${i}">
       <span class="ac-name">${highlightMatch(c.name, query)}</span>
       <span class="ac-meta">${c.category} · ${c.credits}学分 · ${c.online ? '线上' : '线下'}</span>
     </div>
@@ -1396,21 +1410,25 @@ function filterSuggestions() {
   list.classList.add("show");
 }
 
+// 使用事件委托 + pointerdown（桌面和手机都立即响应）
+document.getElementById("autocompleteList").addEventListener("pointerdown", function(e) {
+  const item = e.target.closest(".autocomplete-item");
+  if (item) {
+    e.preventDefault(); // 阻止输入框失去焦点
+    const idx = parseInt(item.getAttribute("data-index"));
+    selectSuggestion(idx);
+  }
+});
+
 function highlightMatch(text, query) {
   const idx = text.toLowerCase().indexOf(query);
   if (idx < 0) return text;
-  return text.substring(0, idx) + '<b style="color:var(--primary)">' + text.substring(idx, idx + query.length) + '</b>' + text.substring(idx + query.length);
+  return text.substring(0, idx) + '<b style="color:var(--coral)">' + text.substring(idx, idx + query.length) + '</b>' + text.substring(idx + query.length);
 }
 
 function selectSuggestion(index) {
-  const input = document.getElementById("courseName");
-  const query = input.value.trim().toLowerCase();
-  const matches = COURSE_LIBRARY.filter(c =>
-    c.name.toLowerCase().includes(query)
-  ).slice(0, 15);
-
-  if (index >= 0 && index < matches.length) {
-    const c = matches[index];
+  if (index >= 0 && index < acMatches.length) {
+    const c = acMatches[index];
     document.getElementById("courseName").value = c.name;
     document.getElementById("courseCategory").value = c.category;
     document.getElementById("courseCredits").value = c.credits;
