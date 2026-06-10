@@ -1,0 +1,1451 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>📚 选修课助手</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* ========== 基础变量与重置 ========== */
+:root {
+  --coral: #FF6B6B;
+  --coral-dark: #ee5a5a;
+  --mint: #4ECDC4;
+  --mint-dark: #3dbdb5;
+  --sunny: #FFE66D;
+  --lavender: #A78BFA;
+  --rose: #FB7185;
+  --amber: #F59E0B;
+  --emerald: #10B981;
+  --sky: #38BDF8;
+
+  --bg-start: #FFF5F0;
+  --bg-mid: #FFFBF7;
+  --bg-end: #F0F7FF;
+  --card-bg: rgba(255,255,255,0.72);
+  --text: #2C3E50;
+  --text-soft: #64748B;
+  --border: #F1E6E0;
+  --radius: 20px;
+  --radius-sm: 12px;
+  --sidebar-width: 220px;
+  --shadow-sm: 0 2px 8px rgba(44,62,80,0.06);
+  --shadow-md: 0 8px 30px rgba(44,62,80,0.08);
+  --shadow-lg: 0 20px 50px rgba(44,62,80,0.12);
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: "PingFang SC", "Microsoft YaHei", "Hiragino Sans GB", sans-serif;
+  background: linear-gradient(160deg, var(--bg-start) 0%, var(--bg-mid) 40%, var(--bg-end) 100%);
+  background-attachment: fixed;
+  color: var(--text);
+  min-height: 100vh;
+  display: flex;
+}
+
+/* ========== 背景装饰 ========== */
+body::before {
+  content: '';
+  position: fixed; top: -200px; right: -150px;
+  width: 500px; height: 500px;
+  background: radial-gradient(circle, rgba(255,107,107,0.08) 0%, transparent 70%);
+  border-radius: 50%; pointer-events: none; z-index: 0;
+}
+body::after {
+  content: '';
+  position: fixed; bottom: -100px; left: -100px;
+  width: 400px; height: 400px;
+  background: radial-gradient(circle, rgba(78,205,196,0.07) 0%, transparent 70%);
+  border-radius: 50%; pointer-events: none; z-index: 0;
+}
+
+/* ========== 侧边栏 ========== */
+.sidebar {
+  width: var(--sidebar-width);
+  background: linear-gradient(180deg, #1E1B2E 0%, #16213E 50%, #1A1A2E 100%);
+  color: #fff;
+  display: flex; flex-direction: column;
+  position: fixed; top: 0; left: 0; bottom: 0;
+  z-index: 100; transition: transform 0.35s cubic-bezier(0.4,0,0.2,1);
+  overflow: hidden;
+}
+
+.sidebar::after {
+  content: '';
+  position: absolute; top: -60px; right: -60px;
+  width: 180px; height: 180px;
+  background: radial-gradient(circle, rgba(255,107,107,0.15) 0%, transparent 70%);
+  border-radius: 50%; pointer-events: none;
+}
+
+.sidebar-logo {
+  padding: 30px 20px 20px;
+  text-align: center;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  position: relative; z-index: 1;
+}
+
+.sidebar-logo .icon { font-size: 40px; display: block; margin-bottom: 8px; filter: drop-shadow(0 4px 8px rgba(255,107,107,0.3)); }
+.sidebar-logo .title { font-family: 'Fredoka', sans-serif; font-size: 20px; font-weight: 700; letter-spacing: 1px; }
+.sidebar-logo .subtitle { font-size: 11px; color: rgba(255,255,255,0.4); margin-top: 4px; letter-spacing: 2px; }
+
+.sidebar-nav { flex: 1; padding: 16px 0; position: relative; z-index: 1; }
+
+.nav-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 14px 22px; cursor: pointer;
+  font-size: 14px; font-weight: 500;
+  color: rgba(255,255,255,0.55);
+  transition: all 0.3s cubic-bezier(0.4,0,0.2,1);
+  border-radius: 0 30px 30px 0;
+  margin: 2px 12px 2px 0;
+  user-select: none; position: relative;
+}
+
+.nav-item:hover {
+  color: #fff;
+  background: rgba(255,255,255,0.06);
+}
+.nav-item.active {
+  color: #fff;
+  background: linear-gradient(90deg, rgba(255,107,107,0.25), rgba(255,107,107,0.05));
+  font-weight: 600;
+}
+.nav-item .nav-icon { font-size: 20px; width: 28px; text-align: center; }
+.nav-item.active::before {
+  content: '';
+  position: absolute; left: 0; top: 50%; transform: translateY(-50%);
+  width: 4px; height: 24px; border-radius: 0 4px 4px 0;
+  background: var(--coral);
+}
+
+.sidebar-footer {
+  padding: 16px 20px;
+  border-top: 1px solid rgba(255,255,255,0.08);
+  font-size: 11px; color: rgba(255,255,255,0.3);
+  position: relative; z-index: 1;
+}
+
+/* ========== 主内容区 ========== */
+.main {
+  margin-left: var(--sidebar-width);
+  flex: 1; padding: 32px 36px;
+  min-height: 100vh; position: relative; z-index: 1;
+}
+
+.page { display: none; }
+.page.active { display: block; animation: pageIn 0.45s cubic-bezier(0.16,1,0.3,1); }
+
+@keyframes pageIn {
+  from { opacity: 0; transform: translateY(16px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.page-header {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 28px;
+}
+
+.page-title { font-family: 'Fredoka', sans-serif; font-size: 26px; font-weight: 700; color: var(--text); }
+
+/* ========== 按钮 ========== */
+.btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 11px 22px; border: none; border-radius: 50px;
+  font-size: 14px; cursor: pointer; font-weight: 600;
+  transition: all 0.3s cubic-bezier(0.4,0,0.2,1);
+  font-family: inherit; letter-spacing: 0.3px;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, var(--coral), #FF8A80);
+  color: #fff; box-shadow: 0 4px 16px rgba(255,107,107,0.3);
+}
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(255,107,107,0.4);
+}
+
+.btn-danger {
+  background: #fff; color: var(--rose);
+  border: 1.5px solid #FECDD3;
+}
+.btn-danger:hover { background: #FFF1F2; border-color: var(--rose); }
+
+.btn-sm { padding: 6px 14px; font-size: 12px; border-radius: 30px; }
+.btn-xs { padding: 4px 10px; font-size: 11px; border-radius: 20px; }
+
+.btn-outline {
+  background: #fff; color: var(--coral);
+  border: 1.5px solid #FECDD3;
+}
+.btn-outline:hover { background: #FFF5F5; border-color: var(--coral); transform: translateY(-1px); }
+
+/* ========== 卡片 ========== */
+.card {
+  background: var(--card-bg);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  padding: 24px;
+  border: 1px solid rgba(255,255,255,0.6);
+}
+
+/* ========== 统计卡片 ========== */
+.stat-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.stat-card {
+  background: var(--card-bg);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-radius: var(--radius);
+  padding: 20px 22px;
+  box-shadow: var(--shadow-sm);
+  display: flex; align-items: center; gap: 16px;
+  border: 1px solid rgba(255,255,255,0.6);
+  transition: all 0.3s cubic-bezier(0.4,0,0.2,1);
+  position: relative; overflow: hidden;
+}
+
+.stat-card::after {
+  content: '';
+  position: absolute; top: -20px; right: -20px;
+  width: 80px; height: 80px;
+  border-radius: 50%;
+  opacity: 0.3; pointer-events: none;
+}
+
+.stat-card:nth-child(1)::after { background: var(--coral); }
+.stat-card:nth-child(2)::after { background: var(--mint); }
+.stat-card:nth-child(3)::after { background: var(--amber); }
+.stat-card:nth-child(4)::after { background: var(--sky); }
+
+.stat-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-md); }
+
+.stat-icon {
+  width: 52px; height: 52px; border-radius: 16px;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 26px; flex-shrink: 0; position: relative; z-index: 1;
+}
+
+.stat-icon.coral { background: #FFF0EE; }
+.stat-icon.mint { background: #E8FAF8; }
+.stat-icon.amber { background: #FFFBF0; }
+.stat-icon.sky { background: #F0F9FF; }
+
+.stat-value { font-family: 'Fredoka', sans-serif; font-size: 30px; font-weight: 700; position: relative; z-index: 1; }
+.stat-label { font-size: 13px; color: var(--text-soft); margin-top: 2px; position: relative; z-index: 1; }
+.stat-value small { font-size: 15px; font-weight: 500; color: var(--text-soft); }
+
+/* ========== 分类完成情况 ========== */
+.category-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 14px;
+}
+
+.category-card {
+  background: var(--card-bg);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-radius: var(--radius);
+  padding: 18px 20px;
+  box-shadow: var(--shadow-sm);
+  border: 1px solid rgba(255,255,255,0.6);
+  transition: all 0.3s cubic-bezier(0.4,0,0.2,1);
+  position: relative;
+}
+
+.category-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-md); }
+
+.category-card.done { border-left: 4px solid var(--emerald); }
+.category-card.partial { border-left: 4px solid var(--amber); }
+.category-card.none { border-left: 4px solid var(--rose); }
+
+.category-card .cat-name { font-size: 15px; font-weight: 700; margin-bottom: 8px; }
+.category-card .cat-detail { font-size: 12px; color: var(--text-soft); line-height: 1.8; }
+
+.cat-status {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 4px 12px; border-radius: 20px;
+  font-size: 11px; font-weight: 700; letter-spacing: 0.5px;
+}
+
+.cat-status.done { background: #ECFDF5; color: var(--emerald); }
+.cat-status.partial { background: #FFFBF0; color: var(--amber); }
+.cat-status.none { background: #FFF1F2; color: var(--rose); }
+
+/* ========== 进度条 ========== */
+.progress-bar {
+  height: 8px; background: #F1F5F9; border-radius: 99px;
+  overflow: hidden; margin-top: 10px;
+}
+
+.progress-fill {
+  height: 100%; border-radius: 99px;
+  transition: width 0.8s cubic-bezier(0.16,1,0.3,1);
+  position: relative;
+}
+
+.progress-fill.green { background: linear-gradient(90deg, #34D399, #10B981); }
+.progress-fill.yellow { background: linear-gradient(90deg, #FBBF24, #F59E0B); }
+.progress-fill.red { background: linear-gradient(90deg, #FB7185, #F43F5E); }
+
+/* ========== 表格 ========== */
+.table-wrap { overflow-x: auto; }
+
+table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 14px; }
+
+thead th {
+  text-align: left; padding: 14px 16px;
+  color: var(--text-soft); font-weight: 700;
+  font-size: 11px; text-transform: uppercase; letter-spacing: 1px;
+  border-bottom: 2px solid #F1E6E0;
+}
+
+tbody td { padding: 14px 16px; border-bottom: 1px solid #F8F2EE; }
+
+tbody tr { transition: all 0.2s; }
+tbody tr:hover { background: #FFFAF8; border-radius: 12px; }
+
+.tag {
+  display: inline-flex; align-items: center; gap: 3px;
+  padding: 4px 12px; border-radius: 20px;
+  font-size: 11px; font-weight: 700;
+}
+
+.tag-online { background: #F0F9FF; color: var(--sky); }
+.tag-offline { background: #FFF0EE; color: var(--coral); }
+
+.empty-state {
+  text-align: center; padding: 70px 20px; color: var(--text-soft);
+}
+.empty-state .empty-icon { font-size: 64px; margin-bottom: 16px; opacity: 0.5; }
+.empty-state p { font-size: 15px; }
+
+/* ========== 缺口列表 ========== */
+.gap-list { display: flex; flex-direction: column; gap: 8px; }
+
+.gap-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 14px 18px; border-radius: 16px;
+  transition: all 0.2s;
+}
+
+.gap-item:hover { transform: translateX(4px); }
+
+.gap-item.unmet { background: #FFF5F5; border: 1px solid #FECDD3; }
+.gap-item.met { background: #F0FDF8; border: 1px solid #A7F3D0; }
+
+.gap-icon { font-size: 20px; flex-shrink: 0; }
+.gap-text { flex: 1; font-size: 14px; }
+.gap-text .gap-title { font-weight: 700; margin-bottom: 2px; }
+.gap-text .gap-detail { font-size: 12px; color: var(--text-soft); }
+
+/* ========== 推荐选课按钮 ========== */
+#recommendList .btn-outline {
+  border: 1.5px solid #E8E0DA;
+  background: rgba(255,255,255,0.8);
+  color: var(--text);
+  font-weight: 500;
+  animation: popIn 0.4s cubic-bezier(0.16,1,0.3,1) both;
+}
+#recommendList .btn-outline:hover {
+  border-color: var(--coral);
+  background: #FFF5F5;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(255,107,107,0.12);
+}
+
+@keyframes popIn {
+  from { opacity: 0; transform: scale(0.9) translateY(8px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+/* ========== 模态框 ========== */
+.modal-overlay {
+  display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(30,27,46,0.5);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  z-index: 1000;
+  align-items: center; justify-content: center;
+}
+
+.modal-overlay.show { display: flex; }
+
+.modal {
+  background: #fff; border-radius: 24px;
+  width: 500px; max-width: 92vw; max-height: 85vh;
+  overflow-y: auto;
+  box-shadow: 0 30px 70px rgba(30,27,46,0.2), 0 0 0 1px rgba(0,0,0,0.05);
+  animation: modalIn 0.35s cubic-bezier(0.16,1,0.3,1);
+}
+
+@keyframes modalIn {
+  from { opacity: 0; transform: scale(0.9) translateY(20px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.modal-header {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 22px 26px; border-bottom: 1px solid #F8F2EE;
+}
+
+.modal-header h3 { font-family: 'Fredoka', sans-serif; font-size: 20px; font-weight: 700; }
+.modal-close {
+  width: 34px; height: 34px; border-radius: 50%; border: 1.5px solid #F1E6E0;
+  background: #FAFAFA; cursor: pointer; font-size: 16px; color: var(--text-soft);
+  display: flex; align-items: center; justify-content: center;
+  transition: all 0.2s;
+}
+.modal-close:hover { background: #FFF1F2; border-color: var(--rose); color: var(--rose); }
+
+.modal-body { padding: 22px 26px; }
+
+.form-group { margin-bottom: 18px; }
+.form-group label {
+  display: block; font-size: 12px; font-weight: 700; margin-bottom: 6px;
+  color: var(--text-soft); text-transform: uppercase; letter-spacing: 0.8px;
+}
+
+.form-control {
+  width: 100%; padding: 12px 16px; border: 1.5px solid #F1E6E0;
+  border-radius: 14px; font-size: 15px; font-family: inherit;
+  transition: all 0.25s; background: #FAFAFA; color: var(--text);
+}
+
+.form-control:focus {
+  outline: none; border-color: var(--coral);
+  background: #fff; box-shadow: 0 0 0 4px rgba(255,107,107,0.08);
+}
+
+select.form-control {
+  cursor: pointer; appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%2364748B' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 14px center;
+  padding-right: 40px;
+}
+
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+
+.modal-footer {
+  padding: 18px 26px; border-top: 1px solid #F8F2EE;
+  display: flex; justify-content: flex-end; gap: 10px;
+}
+
+/* ========== 自动补全 ========== */
+.autocomplete-wrap { position: relative; }
+
+.autocomplete-list {
+  display: none;
+  position: absolute; top: calc(100% + 4px); left: 0; right: 0;
+  background: #fff; border: 1.5px solid #F1E6E0;
+  border-radius: 14px; max-height: 240px; overflow-y: auto;
+  z-index: 2000; box-shadow: 0 16px 40px rgba(30,27,46,0.12);
+}
+
+.autocomplete-list.show { display: block; }
+
+.autocomplete-item {
+  padding: 11px 16px; cursor: pointer; font-size: 14px;
+  display: flex; justify-content: space-between; align-items: center;
+  border-bottom: 1px solid #F8F2EE; transition: all 0.15s;
+}
+
+.autocomplete-item:last-child { border-bottom: none; }
+.autocomplete-item:hover, .autocomplete-item.active { background: #FFF5F5; }
+
+.autocomplete-item .ac-name { font-weight: 600; }
+.autocomplete-item .ac-meta { font-size: 11px; color: var(--text-soft); white-space: nowrap; margin-left: 10px; }
+
+.autocomplete-no-result {
+  padding: 16px; text-align: center; color: var(--text-soft); font-size: 13px;
+}
+
+/* ========== 提示条 ========== */
+.toast {
+  position: fixed; top: 24px; right: 24px; z-index: 2000;
+  padding: 14px 22px; border-radius: 50px; color: #fff;
+  font-size: 14px; font-weight: 600;
+  animation: toastIn 0.4s cubic-bezier(0.16,1,0.3,1);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+}
+
+.toast.success { background: linear-gradient(135deg, #10B981, #34D399); }
+.toast.error { background: linear-gradient(135deg, #F43F5E, #FB7185); }
+
+@keyframes toastIn { from { opacity: 0; transform: translateX(50px) scale(0.9); } to { opacity: 1; transform: translateX(0) scale(1); } }
+
+/* ========== 移动端菜单按钮 ========== */
+.mobile-menu-btn {
+  display: none;
+  position: fixed; top: 14px; left: 14px; z-index: 200;
+  width: 44px; height: 44px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--coral), #FF8A80);
+  color: #fff; border: none; font-size: 20px; cursor: pointer;
+  align-items: center; justify-content: center;
+  box-shadow: 0 4px 16px rgba(255,107,107,0.35);
+}
+
+/* ========== Deerflow 签名 ========== */
+.deerflow-signature {
+  display: flex; align-items: center; gap: 8px;
+  margin-top: 28px; opacity: 0.5;
+  font-size: 11px; color: var(--text-soft);
+  transition: opacity 0.3s;
+}
+.deerflow-signature:hover { opacity: 0.8; }
+.deerflow-signature a {
+  color: var(--text-soft); text-decoration: none;
+  font-weight: 600; letter-spacing: 0.5px;
+  transition: color 0.3s;
+}
+.deerflow-signature a:hover { color: var(--coral); }
+.deerflow-signature .df-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--coral);
+}
+
+/* ========== 响应式 ========== */
+@media (max-width: 1200px) { .category-grid { grid-template-columns: repeat(3, 1fr); } }
+
+@media (max-width: 900px) {
+  .stat-grid { grid-template-columns: repeat(2, 1fr); }
+  .category-grid { grid-template-columns: repeat(2, 1fr); }
+  .sidebar { transform: translateX(-100%); }
+  .sidebar.open { transform: translateX(0); }
+  .main { margin-left: 0; }
+  .mobile-menu-btn { display: flex !important; }
+}
+
+@media (max-width: 600px) {
+  .stat-grid { grid-template-columns: 1fr 1fr; }
+  .category-grid { grid-template-columns: 1fr; }
+  .main { padding: 18px 14px; }
+  .form-row { grid-template-columns: 1fr; }
+  .page-title { font-size: 22px; }
+}
+</style>
+</head>
+<body>
+
+<!-- 移动端菜单按钮 -->
+<button class="mobile-menu-btn" onclick="toggleSidebar()">☰</button>
+
+<!-- ========== 侧边栏 ========== -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-logo">
+    <span class="icon">📚</span>
+    <div class="title">选修课管理</div>
+    <div class="subtitle">✦ 通识 · 思政 · 双创 ✦</div>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-item active" data-page="dashboard" onclick="switchPage('dashboard', this)">
+      <span class="nav-icon">📊</span> 学习仪表盘
+    </div>
+    <div class="nav-item" data-page="courses" onclick="switchPage('courses', this)">
+      <span class="nav-icon">📝</span> 我的课程
+    </div>
+  </nav>
+  <div class="sidebar-footer">
+    💾 数据存于浏览器本地
+    <div class="deerflow-signature">
+      <span class="df-dot"></span>
+      <a href="https://deerflow.tech" target="_blank">Deerflow</a>
+    </div>
+  </div>
+</aside>
+
+<!-- ========== 主内容区 ========== -->
+<main class="main" id="mainContent">
+
+  <!-- ===== 仪表盘 ===== -->
+  <div class="page active" id="page-dashboard">
+    <div class="page-header">
+      <div class="page-title">📊 学习仪表盘</div>
+      <span style="font-size:13px;color:var(--text-secondary)">截止当前学期累计统计</span>
+    </div>
+    <div class="stat-grid" id="statGrid"></div>
+    <div class="card" style="margin-bottom:20px">
+      <h3 style="margin-bottom:16px">📋 各分类完成情况</h3>
+      <div class="category-grid" id="categoryGrid"></div>
+    </div>
+    <div class="card" style="margin-bottom:20px">
+      <h3 style="margin-bottom:14px">📋 毕业要求完成情况 <span style="font-size:12px;color:var(--text-secondary)">通识≥7学分 · 艺术≥2学分 · 思政≥1学分 · 创新创业≥2学分 · 六大类各≥1门</span></h3>
+      <div class="gap-list" id="dashboardGapList"></div>
+    </div>
+    <div class="card">
+      <h3 style="margin-bottom:14px">💡 推荐选课</h3>
+      <p style="font-size:13px;color:var(--text-secondary);margin-bottom:14px">以下课程可以帮你补足未满足的要求，点击即可添加到我的课程</p>
+      <div id="recommendList"></div>
+    </div>
+  </div>
+
+  <!-- ===== 我的课程 ===== -->
+  <div class="page" id="page-courses">
+    <div class="page-header">
+      <div class="page-title">📝 我的课程</div>
+      <button class="btn btn-primary" onclick="openModal()">＋ 添加课程</button>
+    </div>
+    <div class="card">
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>课程名称</th>
+              <th>分类</th>
+              <th>学分</th>
+              <th>形式</th>
+              <th>操作</th>
+            </tr>
+          </thead>
+          <tbody id="myCourseTable"></tbody>
+        </table>
+      </div>
+    </div>
+    <div style="margin-top:16px;font-size:14px;color:var(--text-secondary)" id="myCoursesSummary"></div>
+  </div>
+
+
+</main>
+
+<!-- ========== 模态框 ========== -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <div class="modal-header">
+      <h3 id="modalTitle">添加课程</h3>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>课程名称 *</label>
+        <div class="autocomplete-wrap">
+          <input class="form-control" id="courseName" placeholder="输入关键词自动搜索课程…" autocomplete="off" oninput="filterSuggestions()" onfocus="filterSuggestions()">
+          <div class="autocomplete-list" id="autocompleteList"></div>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>所属分类 *</label>
+          <select class="form-control" id="courseCategory">
+            <option value="">请选择</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>学分</label>
+          <select class="form-control" id="courseCredits">
+            <option value="1">1 学分</option>
+            <option value="2" selected>2 学分</option>
+            <option value="3">3 学分</option>
+            <option value="4">4 学分</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal()">取消</button>
+      <button class="btn btn-primary" id="modalSaveBtn" onclick="saveCourse()">保存</button>
+    </div>
+  </div>
+  <input type="hidden" id="editCourseId" value="">
+  <input type="hidden" id="courseOnline" value="false">
+</div>
+
+<script>
+// ==================== 常量 ====================
+const CATEGORIES = [
+  { key: "国学类",      group: "通识教育", groupIndex: 0 },
+  { key: "文史类",      group: "通识教育", groupIndex: 0 },
+  { key: "艺术类",      group: "通识教育", groupIndex: 0 },
+  { key: "体育类",      group: "通识教育", groupIndex: 0 },
+  { key: "哲学与思辨类", group: "通识教育", groupIndex: 0 },
+  { key: "应用实践方法类", group: "通识教育", groupIndex: 0 },
+  { key: "思政类",      group: "思政",     groupIndex: 1 },
+  { key: "创新创业类",  group: "创新创业", groupIndex: 2 },
+];
+
+const GROUP_NAMES = { "通识教育": "通识教育选修课", "思政": "思政类选修课", "创新创业": "创新创业教育选修课" };
+const GENERAL_CATEGORIES = ["国学类","文史类","艺术类","体育类","哲学与思辨类","应用实践方法类"];
+
+// 预设课程库（线上智慧树+线下课程，共221门）
+const COURSE_LIBRARY = [
+  { name: "陕西民俗艺术鉴赏", category: "国学类", credits: 1, online: true },
+  { name: "最美唐诗宋词", category: "国学类", credits: 1, online: true },
+  { name: "《红楼梦》经典章回评讲", category: "国学类", credits: 1, online: true },
+  { name: "中国传统节日与民俗", category: "国学类", credits: 1, online: true },
+  { name: "中国茶文化", category: "国学类", credits: 1, online: true },
+  { name: "孔子与《论语》", category: "国学类", credits: 1, online: true },
+  { name: "伟大的《红楼梦》", category: "国学类", credits: 1, online: false },
+  { name: "漫话春秋战国", category: "国学类", credits: 1, online: false },
+  { name: "中华传统文化趣味谈", category: "国学类", credits: 1, online: false },
+  { name: "中华国学", category: "国学类", credits: 1, online: false },
+  { name: "中国传统文化 (西安交通大学)", category: "国学类", credits: 1, online: false },
+  { name: "历代赋赏析", category: "文史类", credits: 1, online: true },
+  { name: "中国旅游地理", category: "文史类", credits: 1, online: true },
+  { name: "《本事诗》导读", category: "文史类", credits: 1, online: true },
+  { name: "教育心理学", category: "文史类", credits: 1, online: true },
+  { name: "诗词里的长安", category: "文史类", credits: 1, online: true },
+  { name: "诗歌导读与欣赏", category: "文史类", credits: 1, online: true },
+  { name: "司马迁与《史记》", category: "文史类", credits: 1, online: true },
+  { name: "文学修养与大学生活", category: "文史类", credits: 1, online: false },
+  { name: "中国文化与文学精粹", category: "文史类", credits: 1, online: false },
+  { name: "地球历史及其生命的奥秘", category: "文史类", credits: 1, online: false },
+  { name: "中国历史地理", category: "文史类", credits: 1, online: false },
+  { name: "异彩纷呈的民族文化", category: "文史类", credits: 1, online: false },
+  { name: "语言与文字", category: "文史类", credits: 1, online: false },
+  { name: "解码国家安全", category: "文史类", credits: 1, online: false },
+  { name: "中华民族共同体意识教育", category: "文史类", credits: 1, online: false },
+  { name: "铸牢中华民族共同体意识 - 马克思主义民族理论与政策", category: "文史类", credits: 1, online: false },
+  { name: "当代民航精神与文化", category: "文史类", credits: 1, online: false },
+  { name: "生活中的语言与语言学", category: "文史类", credits: 1, online: false },
+  { name: "唐诗宋词人文解读", category: "文史类", credits: 1, online: false },
+  { name: "舌尖上的历史与文化", category: "文史类", credits: 1, online: false },
+  { name: "影视音乐欣赏", category: "艺术类", credits: 1, online: true },
+  { name: "中国舞蹈作品赏析", category: "艺术类", credits: 1, online: true },
+  { name: "漫谈民间舞蹈", category: "艺术类", credits: 1, online: true },
+  { name: "中国历代名画赏析", category: "艺术类", credits: 1, online: true },
+  { name: "中国山水画", category: "艺术类", credits: 1, online: true },
+  { name: "插画影视赏析", category: "艺术类", credits: 1, online: true },
+  { name: "短视频舞蹈基础教学", category: "艺术类", credits: 1, online: true },
+  { name: "水彩画技法入门", category: "艺术类", credits: 1, online: true },
+  { name: "新疆少数民族音乐赏析", category: "艺术类", credits: 1, online: true },
+  { name: "中国传统戏曲鉴赏", category: "艺术类", credits: 1, online: true },
+  { name: "艺术疗愈：绽放生命光彩", category: "艺术类", credits: 1, online: true },
+  { name: "中国电影趣谈", category: "艺术类", credits: 1, online: true },
+  { name: "中国写意花鸟画入门", category: "艺术类", credits: 1, online: true },
+  { name: "中外音乐剧鉴赏", category: "艺术类", credits: 1, online: true },
+  { name: "阿卡贝拉基础理论与演唱训练", category: "艺术类", credits: 1, online: true },
+  { name: "中国历代服装赏析", category: "艺术类", credits: 1, online: true },
+  { name: "中外影视鉴赏", category: "艺术类", credits: 1, online: true },
+  { name: "摄影入门基础", category: "艺术类", credits: 1, online: true },
+  { name: "影视与动漫鉴赏", category: "艺术类", credits: 1, online: true },
+  { name: "工业设计经典作品赏析", category: "艺术类", credits: 1, online: true },
+  { name: "合唱基础入门", category: "艺术类", credits: 1, online: true },
+  { name: "正念艺术疗愈", category: "艺术类", credits: 1, online: true },
+  { name: "素描基础", category: "艺术类", credits: 1, online: true },
+  { name: "如何唱好歌", category: "艺术类", credits: 1, online: true },
+  { name: "规范字与硬笔书法", category: "艺术类", credits: 1, online: true },
+  { name: "解密色彩", category: "艺术类", credits: 1, online: true },
+  { name: "素描写生与创作", category: "艺术类", credits: 1, online: true },
+  { name: "戏剧鉴赏：走进表演艺术", category: "艺术类", credits: 1, online: true },
+  { name: "商务礼仪与沟通", category: "艺术类", credits: 1, online: true },
+  { name: "动画电影经典赏析", category: "艺术类", credits: 1, online: true },
+  { name: "轻松写好毛笔字", category: "艺术类", credits: 1, online: true },
+  { name: "硬笔书法很简单", category: "艺术类", credits: 1, online: true },
+  { name: "名画中的瘟疫史", category: "艺术类", credits: 1, online: false },
+  { name: "艺术与审美", category: "艺术类", credits: 1, online: false },
+  { name: "中国古建筑文化与鉴赏", category: "艺术类", credits: 1, online: false },
+  { name: "外国建筑赏析", category: "艺术类", credits: 1, online: false },
+  { name: "中国书法艺术", category: "艺术类", credits: 1, online: false },
+  { name: "跟着电影去旅游", category: "艺术类", credits: 1, online: false },
+  { name: "走近摄影", category: "艺术类", credits: 1, online: false },
+  { name: "美学与人生", category: "艺术类", credits: 1, online: false },
+  { name: "中国民族音乐作品鉴赏", category: "艺术类", credits: 1, online: false },
+  { name: "经典影视片解读", category: "艺术类", credits: 1, online: false },
+  { name: "走进歌剧世界", category: "艺术类", credits: 1, online: false },
+  { name: "「非遗」之首 -- 昆曲经典艺术欣赏", category: "艺术类", credits: 1, online: false },
+  { name: "伦理与社会责任", category: "艺术类", credits: 1, online: false },
+  { name: "健身气功五禽戏", category: "体育类", credits: 1, online: true },
+  { name: "羽毛球", category: "体育类", credits: 1, online: true },
+  { name: "健身瑜伽1基础练习", category: "体育类", credits: 1, online: true },
+  { name: "乒乓球", category: "体育类", credits: 1, online: true },
+  { name: "体育舞蹈", category: "体育类", credits: 1, online: true },
+  { name: "啦啦操", category: "体育类", credits: 1, online: true },
+  { name: "健身气功（八段锦）", category: "体育类", credits: 1, online: true },
+  { name: "篮球裁判教学与教法", category: "体育类", credits: 1, online: true },
+  { name: "跆拳道竞技技术", category: "体育类", credits: 1, online: true },
+  { name: "匹克球", category: "体育类", credits: 1, online: true },
+  { name: "散打", category: "体育类", credits: 1, online: true },
+  { name: "健身气功大舞", category: "体育类", credits: 1, online: true },
+  { name: "健身健美", category: "体育类", credits: 1, online: true },
+  { name: "健身瑜伽学练指南", category: "体育类", credits: 1, online: false },
+  { name: "平衡身心 -- 瑜伽", category: "体育类", credits: 1, online: false },
+  { name: "大学体育与健康", category: "体育类", credits: 1, online: false },
+  { name: "大学体育理论 (山东联盟)", category: "体育类", credits: 1, online: false },
+  { name: "篮球达人进阶教学", category: "体育类", credits: 1, online: false },
+  { name: "小球见大国：乒乓球文化与技术", category: "体育类", credits: 1, online: false },
+  { name: "大学生恋爱心理学", category: "哲学与思辨类", credits: 1, online: true },
+  { name: "发展心理学", category: "哲学与思辨类", credits: 1, online: true },
+  { name: "普通心理学", category: "哲学与思辨类", credits: 1, online: true },
+  { name: "古希腊神话与哲学智慧", category: "哲学与思辨类", credits: 1, online: true },
+  { name: "孙子兵法中的思维智慧", category: "哲学与思辨类", credits: 1, online: false },
+  { name: "三贤士", category: "哲学与思辨类", credits: 1, online: false },
+  { name: "音乐鉴赏与应用", category: "应用实践方法类", credits: 1, online: true },
+  { name: "逐梦蓝天-飞机的飞行原理", category: "应用实践方法类", credits: 1, online: true },
+  { name: "大学生成长团体心理辅导", category: "应用实践方法类", credits: 1, online: true },
+  { name: "理工场景英语：从图纸到沟通的实用表达", category: "应用实践方法类", credits: 1, online: true },
+  { name: "德语入门", category: "应用实践方法类", credits: 1, online: true },
+  { name: "图纸上的乐高", category: "应用实践方法类", credits: 1, online: true },
+  { name: "礼行天下 仪动职场", category: "应用实践方法类", credits: 1, online: false },
+  { name: "神奇的普洱茶", category: "应用实践方法类", credits: 1, online: false },
+  { name: "商业伦理与企业社会责任 (山东财经大学)", category: "应用实践方法类", credits: 1, online: false },
+  { name: "人际传播能力", category: "应用实践方法类", credits: 1, online: false },
+  { name: "英语口语直通车", category: "应用实践方法类", credits: 1, online: false },
+  { name: "上大学，不迷茫", category: "应用实践方法类", credits: 1, online: false },
+  { name: "营养与食疗学", category: "应用实践方法类", credits: 1, online: false },
+  { name: "艾滋病、性与健康", category: "应用实践方法类", credits: 1, online: false },
+  { name: "实验室安全与防护", category: "应用实践方法类", credits: 1, online: false },
+  { name: "实验安全你我他", category: "应用实践方法类", credits: 1, online: false },
+  { name: "实验室安全与管理", category: "应用实践方法类", credits: 1, online: false },
+  { name: "大国三农 II-- 农业科技版", category: "应用实践方法类", credits: 1, online: false },
+  { name: "领导力与高效能组织", category: "应用实践方法类", credits: 1, online: false },
+  { name: "安全防护与急救处理", category: "应用实践方法类", credits: 1, online: false },
+  { name: "大学体育 -- 瑜伽", category: "应用实践方法类", credits: 1, online: false },
+  { name: "党史", category: "思政类", credits: 1, online: true },
+  { name: "新中国史", category: "思政类", credits: 1, online: true },
+  { name: "改革开放史", category: "思政类", credits: 1, online: true },
+  { name: "社会主义发展史", category: "思政类", credits: 1, online: true },
+  { name: "中华民族共同体概论", category: "思政类", credits: 1, online: true },
+  { name: "中国文化专题", category: "思政类", credits: 1, online: false },
+  { name: "《道德经》的智慧启示", category: "思政类", credits: 1, online: false },
+  { name: "敦煌的艺术", category: "思政类", credits: 1, online: false },
+  { name: "中国古典诗词中的品格与修养", category: "思政类", credits: 1, online: false },
+  { name: "丝绸之路漫谈", category: "思政类", credits: 1, online: false },
+  { name: "感悟考古", category: "思政类", credits: 1, online: false },
+  { name: "走进故宫", category: "思政类", credits: 1, online: false },
+  { name: "红色经典导论", category: "思政类", credits: 1, online: false },
+  { name: "延安精神概论", category: "思政类", credits: 1, online: false },
+  { name: "中国红色文化精神", category: "思政类", credits: 1, online: false },
+  { name: "红船精神与时代价值", category: "思政类", credits: 1, online: false },
+  { name: "东北抗联精神", category: "思政类", credits: 1, online: false },
+  { name: "中国茶文化与茶健康", category: "思政类", credits: 1, online: false },
+  { name: "改革开放与新时代", category: "思政类", credits: 1, online: false },
+  { name: "中国抗日战争史", category: "思政类", credits: 1, online: false },
+  { name: "中共党史概论", category: "思政类", credits: 1, online: false },
+  { name: "逻辑学导论", category: "思政类", credits: 1, online: false },
+  { name: "大学生爱国教育十讲", category: "思政类", credits: 1, online: false },
+  { name: "创新创业财务实训", category: "创新创业类", credits: 1, online: true },
+  { name: "机器人任务规划基础及应用", category: "创新创业类", credits: 1, online: true },
+  { name: "机械设计创新", category: "创新创业类", credits: 1, online: true },
+  { name: "英美社会与文化", category: "创新创业类", credits: 1, online: true },
+  { name: "艺术与文化创意产业", category: "创新创业类", credits: 1, online: true },
+  { name: "直面国民健康，解锁急救密码", category: "创新创业类", credits: 1, online: true },
+  { name: "创新创业与纳税实务", category: "创新创业类", credits: 1, online: true },
+  { name: "商品学", category: "创新创业类", credits: 1, online: true },
+  { name: "风险投资与创业融资", category: "创新创业类", credits: 1, online: true },
+  { name: "物联网与传感器技术", category: "创新创业类", credits: 1, online: true },
+  { name: "人工智能创新应用", category: "创新创业类", credits: 1, online: true },
+  { name: "Python数据分析创新与应用", category: "创新创业类", credits: 1, online: true },
+  { name: "人工智能与计算思维创新应用", category: "创新创业类", credits: 1, online: true },
+  { name: "航空事故深度解析结构原理与调查技术", category: "创新创业类", credits: 1, online: true },
+  { name: "客户关怀文化构建", category: "创新创业类", credits: 1, online: true },
+  { name: "舞蹈艺术经营与创业", category: "创新创业类", credits: 1, online: true },
+  { name: "新媒体创业运营", category: "创新创业类", credits: 1, online: true },
+  { name: "网络短剧创作", category: "创新创业类", credits: 1, online: true },
+  { name: "视觉文化创意-从笔墨到文化IP", category: "创新创业类", credits: 1, online: true },
+  { name: "飞机结构与机械系统：问题导向的创新设计", category: "创新创业类", credits: 1, online: true },
+  { name: "汉字中的创意思维", category: "创新创业类", credits: 1, online: true },
+  { name: "大学生创业基础能力训练", category: "创新创业类", credits: 1, online: true },
+  { name: "营养师成长之路", category: "创新创业类", credits: 1, online: true },
+  { name: "\"创业+就业\"职场英语工作坊", category: "创新创业类", credits: 1, online: true },
+  { name: "企业内部控制", category: "创新创业类", credits: 1, online: true },
+  { name: "个人与创业财务管理", category: "创新创业类", credits: 1, online: true },
+  { name: "互联网与营销创新", category: "创新创业类", credits: 1, online: false },
+  { name: "西方社会思想两千年", category: "创新创业类", credits: 1, online: false },
+  { name: "世界著名博物馆艺术经典", category: "创新创业类", credits: 1, online: false },
+  { name: "探索心理学的奥秘", category: "创新创业类", credits: 1, online: false },
+  { name: "思辨与创新", category: "创新创业类", credits: 1, online: false },
+  { name: "多媒体课件设计与制作", category: "创新创业类", credits: 1, online: false },
+  { name: "生态文明", category: "创新创业类", credits: 1, online: false },
+  { name: "Office 高效办公", category: "创新创业类", credits: 1, online: false },
+  { name: "博弈策略与完美思维", category: "创新创业类", credits: 1, online: false },
+  { name: "应用写作技能与规范", category: "创新创业类", credits: 1, online: false },
+  { name: "未来趋势与职业前景", category: "创新创业类", credits: 1, online: false },
+  { name: "从创意到创业", category: "创新创业类", credits: 1, online: false },
+  { name: "创业 + 智能设备", category: "创新创业类", credits: 1, online: false },
+  { name: "批判性思维", category: "创新创业类", credits: 1, online: false },
+  { name: "科技信息检索与论文写作", category: "创新创业类", credits: 1, online: false },
+  { name: "创业机会与创业选择", category: "创新创业类", credits: 1, online: false },
+  { name: "口才与演讲实训教程", category: "创新创业类", credits: 1, online: false },
+  { name: "如何赢得大学生创新创业大赛", category: "创新创业类", credits: 1, online: false },
+  { name: "创践 -- 大学生创新创业实务", category: "创新创业类", credits: 1, online: false },
+  { name: "创造性思维与创新方法", category: "创新创业类", credits: 1, online: false },
+  { name: "文化差异与跨文化交际", category: "创新创业类", credits: 1, online: false },
+  { name: "创新工程实践", category: "创新创业类", credits: 1, online: false },
+  { name: "创业管理 -- 易学实用的创业真知", category: "创新创业类", credits: 1, online: false },
+  { name: "「玩」创未来", category: "创新创业类", credits: 1, online: false },
+  { name: "创业管理 (上海财经大学)", category: "创新创业类", credits: 1, online: false },
+  { name: "大学生创新创业基础 (广西师范大学)", category: "创新创业类", credits: 1, online: false },
+  { name: "职业生涯规划 -- 体验式学习", category: "创新创业类", credits: 1, online: false },
+  { name: "求职 OMG 一大学生就业指导与技能开发", category: "创新创业类", credits: 1, online: false },
+  { name: "公共关系与人际交往能力", category: "创新创业类", credits: 1, online: false },
+  { name: "古希腊文明", category: "创新创业类", credits: 1, online: false },
+  { name: "西方文明史导论", category: "创新创业类", credits: 1, online: false },
+  { name: "文艺复兴经典名著选读", category: "创新创业类", credits: 1, online: false },
+  { name: "国际关系史", category: "创新创业类", credits: 1, online: false },
+  { name: "国际发展援助概论", category: "创新创业类", credits: 1, online: false },
+  { name: "国际金融风云与智慧投资", category: "创新创业类", credits: 1, online: false },
+  { name: "海权与制海权", category: "创新创业类", credits: 1, online: false },
+  { name: "战争与谋略：第二次世界大战经典战役评析", category: "创新创业类", credits: 1, online: false },
+  { name: "解读中国经济发展的密码", category: "创新创业类", credits: 1, online: false },
+  { name: "数智时代的商业变革", category: "创新创业类", credits: 1, online: false },
+  { name: "视觉与艺术", category: "创新创业类", credits: 1, online: false },
+  { name: "走近核科学技术", category: "创新创业类", credits: 1, online: false },
+  { name: "人工智能与科学之美", category: "创新创业类", credits: 1, online: false },
+  { name: "生活中的工业设计", category: "创新创业类", credits: 1, online: false },
+  { name: "汽车行走的艺术", category: "创新创业类", credits: 1, online: false },
+  { name: "跨境电商", category: "创新创业类", credits: 1, online: false },
+  { name: "创新创业心理学", category: "创新创业类", credits: 1, online: false },
+  { name: "艺术教育活动设计与实施", category: "创新创业类", credits: 1, online: false },
+  { name: "跨境电商零售实务", category: "创新创业类", credits: 1, online: false },
+  { name: "全媒体新闻发布实务", category: "创新创业类", credits: 1, online: false },
+  { name: "创新创业财务综合实训", category: "创新创业类", credits: 1, online: false },
+];
+
+// ==================== 数据管理 ====================
+const STORAGE_KEY = "elective_courses";
+
+function loadCourses() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch (e) { return []; }
+}
+
+function saveCourses(courses) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(courses));
+}
+
+let courses = loadCourses();
+let currentPage = "dashboard";
+
+// ==================== 初始化 ====================
+function init() {
+  populateCategorySelects();
+  renderAll();
+}
+
+function populateCategorySelects() {
+  const sel = document.getElementById("courseCategory");
+  sel.innerHTML = '<option value="">请选择</option>' +
+    CATEGORIES.map(c => `<option value="${c.key}">${c.key}（${GROUP_NAMES[c.group]}）</option>`).join('');
+}
+
+// ==================== 页面导航 ====================
+function switchPage(page, navEl) {
+  currentPage = page;
+  document.querySelectorAll(".page").forEach(p => p.classList.remove("active"));
+  document.getElementById("page-" + page).classList.add("active");
+  document.querySelectorAll(".nav-item").forEach(n => n.classList.remove("active"));
+  if (navEl) navEl.classList.add("active");
+  // 移动端关闭侧边栏
+  document.getElementById("sidebar").classList.remove("open");
+  renderAll();
+}
+
+function toggleSidebar() {
+  document.getElementById("sidebar").classList.toggle("open");
+}
+
+// ==================== 渲染总控 ====================
+function renderAll() {
+  switch (currentPage) {
+    case "dashboard": renderDashboard(); break;
+    case "courses": renderMyCourses(); break;
+  }
+}
+
+// ==================== 计算工具 ====================
+function getCategoryStats() {
+  const stats = {};
+  CATEGORIES.forEach(c => {
+    stats[c.key] = { count: 0, credits: 0, onlineCredits: 0, offlineCredits: 0, group: c.group };
+  });
+  courses.forEach(c => {
+    if (stats[c.category]) {
+      stats[c.category].count++;
+      stats[c.category].credits += c.credits;
+      if (c.online) stats[c.category].onlineCredits += c.credits;
+      else stats[c.category].offlineCredits += c.credits;
+    }
+  });
+  return stats;
+}
+
+function getGroupStats() {
+  const stats = { "通识教育": { credits: 0, count: 0 }, "思政": { credits: 0, count: 0 }, "创新创业": { credits: 0, count: 0 } };
+  courses.forEach(c => {
+    const cat = CATEGORIES.find(x => x.key === c.category);
+    if (cat && stats[cat.group]) {
+      stats[cat.group].credits += c.credits;
+      stats[cat.group].count++;
+    }
+  });
+  return stats;
+}
+
+// ==================== 仪表盘 ====================
+function renderDashboard() {
+  const catStats = getCategoryStats();
+  const groupStats = getGroupStats();
+
+  // 统计卡片
+  const totalCredits = courses.reduce((s, c) => s + c.credits, 0);
+  const totalCourses = courses.length;
+  const generalCredits = groupStats["通识教育"].credits;
+  const 思政Credits = groupStats["思政"].credits;
+  const 双创Credits = groupStats["创新创业"].credits;
+
+  document.getElementById("statGrid").innerHTML = `
+    <div class="stat-card">
+      <div class="stat-icon coral">📚</div>
+      <div>
+        <div class="stat-value">${totalCredits}</div>
+        <div class="stat-label">已选总学分</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon mint">📖</div>
+      <div>
+        <div class="stat-value">${generalCredits}<small>/7</small></div>
+        <div class="stat-label">通识教育学分</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon amber">🏛</div>
+      <div>
+        <div class="stat-value">${思政Credits}<small>/1</small></div>
+        <div class="stat-label">思政类学分</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon sky">💡</div>
+      <div>
+        <div class="stat-value">${双创Credits}<small>/2</small></div>
+        <div class="stat-label">双创教育学分</div>
+      </div>
+    </div>
+  `;
+
+  // 分类完成情况
+  let catHTML = "";
+  CATEGORIES.forEach(c => {
+    const s = catStats[c.key];
+    let statusClass, statusText;
+    if (c.key === "艺术类") {
+      // 艺术类特殊：≥2学分
+      if (s.credits >= 2 && s.count >= 1) { statusClass = "done"; statusText = "✅ 已完成"; }
+      else if (s.count > 0 || s.credits > 0) { statusClass = "partial"; statusText = "⚠ 进行中"; }
+      else { statusClass = "none"; statusText = "❌ 未选"; }
+    } else if (GENERAL_CATEGORIES.includes(c.key)) {
+      // 通识其他类：≥1门
+      if (s.count >= 1) { statusClass = "done"; statusText = "✅ 已完成"; }
+      else { statusClass = "none"; statusText = "❌ 未选"; }
+    } else if (c.key === "思政类") {
+      if (s.credits >= 1) { statusClass = "done"; statusText = "✅ 已完成"; }
+      else { statusClass = "none"; statusText = "❌ 未选"; }
+    } else if (c.key === "创新创业类") {
+      if (s.credits >= 2) { statusClass = "done"; statusText = "✅ 已完成"; }
+      else if (s.credits > 0) { statusClass = "partial"; statusText = "⚠ 进行中"; }
+      else { statusClass = "none"; statusText = "❌ 未选"; }
+    }
+
+    const pct = c.key === "艺术类" ? Math.min(100, (s.credits / 2) * 100)
+      : c.key === "创新创业类" ? Math.min(100, (s.credits / 2) * 100)
+      : c.key === "思政类" ? Math.min(100, (s.credits / 1) * 100)
+      : Math.min(100, (s.count / 1) * 100);
+
+    catHTML += `
+      <div class="category-card ${statusClass}">
+        <div class="cat-name">${c.key}</div>
+        <div class="cat-detail">
+          已选 ${s.count} 门 · ${s.credits} 学分<br>
+          ${s.onlineCredits > 0 ? `线上 ${s.onlineCredits} 学分` : ""}
+          ${s.onlineCredits > 0 && s.offlineCredits > 0 ? " · " : ""}
+          ${s.offlineCredits > 0 ? `线下 ${s.offlineCredits} 学分` : ""}
+        </div>
+        <div class="progress-bar"><div class="progress-fill ${statusClass === 'done' ? 'green' : statusClass === 'partial' ? 'yellow' : 'red'}" style="width:${pct}%"></div></div>
+        <div style="margin-top:6px"><span class="cat-status ${statusClass}">${statusText}</span></div>
+      </div>
+    `;
+  });
+  document.getElementById("categoryGrid").innerHTML = catHTML;
+
+  // 毕业要求完成情况（显示全部，已满足的绿色打勾）
+  const gaps = computeGaps(catStats, groupStats);
+  document.getElementById("dashboardGapList").innerHTML = gaps.map(g => `
+    <div class="gap-item ${g.met ? 'met' : 'unmet'}">
+      <span class="gap-icon">${g.met ? '✅' : '⚠️'}</span>
+      <div class="gap-text">
+        <div class="gap-title">${g.title}</div>
+        <div class="gap-detail">${g.detail}</div>
+      </div>
+    </div>
+  `).join('');
+
+  // 推荐选课
+  renderRecommendations(catStats);
+}
+
+// ==================== 缺口计算 ====================
+function computeGaps(catStats, groupStats) {
+  if (!catStats) catStats = getCategoryStats();
+  if (!groupStats) groupStats = getGroupStats();
+
+  const gaps = [];
+
+  // 通识教育 ≥7学分
+  const generalCredits = groupStats["通识教育"].credits;
+  gaps.push({
+    title: "通识教育选修课 ≥ 7学分",
+    detail: `当前 ${generalCredits} 学分，${generalCredits >= 7 ? "✅ 已满足" : `还差 ${7 - generalCredits} 学分`}`,
+    met: generalCredits >= 7
+  });
+
+  // 六大类各 ≥1门
+  GENERAL_CATEGORIES.forEach(cat => {
+    const s = catStats[cat];
+    gaps.push({
+      title: `${cat} ≥ 1门`,
+      detail: `当前 ${s.count} 门${s.count >= 1 ? " ✅ 已满足" : " ❌ 未选"}`,
+      met: s.count >= 1
+    });
+  });
+
+  // 艺术类 ≥2学分
+  const artStats = catStats["艺术类"];
+  gaps.push({
+    title: "艺术类 ≥ 2学分（通识类中特殊要求）",
+    detail: `当前 ${artStats.credits} 学分（${artStats.count} 门）${artStats.credits >= 2 ? " ✅ 已满足" : ` ❌ 还差 ${2 - artStats.credits} 学分`}`,
+    met: artStats.credits >= 2
+  });
+
+  // 思政类 ≥1学分
+  const 思政Stats = catStats["思政类"];
+  gaps.push({
+    title: "思政类选修课 ≥ 1学分",
+    detail: `当前 ${思政Stats.credits} 学分（${思政Stats.count} 门）${思政Stats.credits >= 1 ? " ✅ 已满足" : " ❌ 未选"}`,
+    met: 思政Stats.credits >= 1
+  });
+
+  // 创新创业 ≥2学分
+  const 双创Stats = catStats["创新创业类"];
+  gaps.push({
+    title: "创新创业教育选修课 ≥ 2学分",
+    detail: `当前 ${双创Stats.credits} 学分（${双创Stats.count} 门）${双创Stats.credits >= 2 ? " ✅ 已满足" : ` ❌ 还差 ${2 - 双创Stats.credits} 学分`}`,
+    met: 双创Stats.credits >= 2
+  });
+
+  return gaps;
+}
+
+// ==================== 我的课程 ====================
+function renderMyCourses() {
+  const list = courses;
+
+  if (list.length === 0) {
+    document.getElementById("myCourseTable").innerHTML = `
+      <tr><td colspan="5">
+        <div class="empty-state">
+          <div class="empty-icon">📭</div>
+          <p>还没有选课记录</p>
+          <button class="btn btn-primary" style="margin-top:12px" onclick="openModal()">＋ 添加第一门课</button>
+        </div>
+      </td></tr>
+    `;
+  } else {
+    document.getElementById("myCourseTable").innerHTML = list.map(c => `
+      <tr>
+        <td><strong>${escHtml(c.name)}</strong></td>
+        <td><span class="tag tag-offline">${c.category}</span></td>
+        <td>${c.credits} 学分</td>
+        <td><span class="tag ${c.online ? 'tag-online' : 'tag-offline'}">${c.online ? '💻 线上' : '🏫 线下'}</span></td>
+        <td>
+          <button class="btn btn-outline btn-sm" onclick="editCourse(${c.id})">✏️ 编辑</button>
+          <button class="btn btn-danger btn-sm" style="margin-left:6px" onclick="deleteCourse(${c.id})">🗑 删除</button>
+        </td>
+      </tr>
+    `).join('');
+  }
+
+  // 汇总
+  const totalCredits = courses.reduce((s, c) => s + c.credits, 0);
+  const onlineCredits = courses.filter(c => c.online).reduce((s, c) => s + c.credits, 0);
+  const offlineCredits = courses.filter(c => !c.online).reduce((s, c) => s + c.credits, 0);
+  document.getElementById("myCoursesSummary").innerHTML = `
+    📌 共 <strong>${courses.length}</strong> 门课，合计 <strong>${totalCredits} 学分</strong>
+    （线上 ${onlineCredits} 学分 + 线下 ${offlineCredits} 学分）
+  `;
+}
+
+// ==================== 推荐选课 ====================
+function renderRecommendations(catStats) {
+  // 找出未满足的类别
+  const unmetCats = [];
+  CATEGORIES.forEach(c => {
+    const s = catStats[c.key];
+    let met = false;
+    if (GENERAL_CATEGORIES.includes(c.key)) {
+      met = c.key === "艺术类" ? (s.credits >= 2 && s.count >= 1) : (s.count >= 1);
+    } else if (c.key === "思政类") {
+      met = s.credits >= 1;
+    } else if (c.key === "创新创业类") {
+      met = s.credits >= 2;
+    }
+    if (!met) unmetCats.push(c.key);
+  });
+
+  // 检查通识总学分
+  const generalCredits = CATEGORIES.filter(c => c.group === "通识教育").reduce((sum, c) => sum + (catStats[c.key] ? catStats[c.key].credits : 0), 0);
+  const needMoreCredits = generalCredits < 7;
+
+  if (unmetCats.length === 0 && !needMoreCredits) {
+    document.getElementById("recommendList").innerHTML = '<div style="text-align:center;padding:20px;color:var(--success);font-size:16px">🎉 所有要求已满足，不需要再选课了！</div>';
+    return;
+  }
+
+  // 从课程库里为每个未满足类别推荐最多3门课（排除已选的）
+  const takenNames = new Set(courses.map(c => c.name));
+  let html = '';
+
+  unmetCats.forEach(cat => {
+    const candidates = COURSE_LIBRARY.filter(c => c.category === cat && !takenNames.has(c.name)).slice(0, 3);
+    if (candidates.length > 0) {
+      html += `<div style="margin-bottom:14px"><strong style="font-size:14px">📌 ${cat}</strong></div>`;
+      html += '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">';
+      candidates.forEach(c => {
+        html += `<button class="btn btn-outline btn-sm" onclick="quickAdd('${escJs(c.name)}', '${c.category}', ${c.credits}, ${c.online})" style="text-align:left;white-space:normal;max-width:320px">➕ ${c.name}（${c.credits}学分·${c.online ? '线上' : '线下'}）</button>`;
+      });
+      html += '</div>';
+    }
+  });
+
+  // 如果还差总学分，推荐该分类外的课程
+  if (needMoreCredits || html === '') {
+    const allCandidates = COURSE_LIBRARY.filter(c => !takenNames.has(c.name)).slice(0, 6);
+    if (allCandidates.length > 0) {
+      html += '<div style="margin-bottom:8px"><strong style="font-size:14px">📌 更多可选课程</strong></div>';
+      html += '<div style="display:flex;gap:8px;flex-wrap:wrap">';
+      allCandidates.forEach(c => {
+        html += `<button class="btn btn-outline btn-sm" onclick="quickAdd('${escJs(c.name)}', '${c.category}', ${c.credits}, ${c.online})" style="text-align:left;white-space:normal;max-width:320px">➕ ${c.name}（${c.category}·${c.credits}学分·${c.online ? '线上' : '线下'}）</button>`;
+      });
+      html += '</div>';
+    }
+  }
+
+  document.getElementById("recommendList").innerHTML = html || '<div style="color:var(--text-secondary)">暂无推荐</div>';
+}
+
+// 快速添加课程
+function quickAdd(name, category, credits, online) {
+  const newId = courses.length > 0 ? Math.max(...courses.map(c => c.id)) + 1 : 1;
+  courses.push({ id: newId, name, category, credits: parseInt(credits), online: online === true || online === 'true' });
+  saveCourses(courses);
+  showToast('已添加：' + name, 'success');
+  renderDashboard();
+}
+
+function escJs(str) {
+  return str.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '\\"');
+}
+
+// ==================== 模态框 ====================
+function openModal(courseData) {
+  document.getElementById("modalOverlay").classList.add("show");
+
+  if (courseData) {
+    // 编辑模式
+    document.getElementById("modalTitle").textContent = "编辑课程";
+    document.getElementById("modalSaveBtn").textContent = "💾 更新";
+    document.getElementById("editCourseId").value = courseData.id;
+    document.getElementById("courseName").value = courseData.name;
+    document.getElementById("courseCategory").value = courseData.category;
+    document.getElementById("courseCredits").value = courseData.credits;
+    document.getElementById("courseOnline").value = courseData.online ? "true" : "false";
+  } else {
+    // 新增模式
+    document.getElementById("modalTitle").textContent = "添加课程";
+    document.getElementById("modalSaveBtn").textContent = "💾 保存";
+    document.getElementById("editCourseId").value = "";
+    document.getElementById("courseName").value = "";
+    document.getElementById("courseCategory").value = "";
+    document.getElementById("courseCredits").value = "2";
+    document.getElementById("courseOnline").value = "false";
+  }
+}
+
+function closeModal() {
+  document.getElementById("modalOverlay").classList.remove("show");
+  document.getElementById("autocompleteList").classList.remove("show");
+}
+
+// ==================== 自动补全 ====================
+let acSelectedIndex = -1;
+
+function filterSuggestions() {
+  const input = document.getElementById("courseName");
+  const list = document.getElementById("autocompleteList");
+  const query = input.value.trim().toLowerCase();
+
+  if (!query) {
+    list.classList.remove("show");
+    return;
+  }
+
+  // Search in COURSE_LIBRARY
+  const matches = COURSE_LIBRARY.filter(c =>
+    c.name.toLowerCase().includes(query)
+  ).slice(0, 15); // max 15 results
+
+  if (matches.length === 0) {
+    list.innerHTML = '<div class="autocomplete-no-result">未找到匹配课程，可手动输入</div>';
+    list.classList.add("show");
+    return;
+  }
+
+  acSelectedIndex = -1;
+  list.innerHTML = matches.map((c, i) => `
+    <div class="autocomplete-item" data-index="${i}" onmousedown="selectSuggestion(${i})">
+      <span class="ac-name">${highlightMatch(c.name, query)}</span>
+      <span class="ac-meta">${c.category} · ${c.credits}学分 · ${c.online ? '线上' : '线下'}</span>
+    </div>
+  `).join('');
+  list.classList.add("show");
+}
+
+function highlightMatch(text, query) {
+  const idx = text.toLowerCase().indexOf(query);
+  if (idx < 0) return text;
+  return text.substring(0, idx) + '<b style="color:var(--primary)">' + text.substring(idx, idx + query.length) + '</b>' + text.substring(idx + query.length);
+}
+
+function selectSuggestion(index) {
+  const input = document.getElementById("courseName");
+  const query = input.value.trim().toLowerCase();
+  const matches = COURSE_LIBRARY.filter(c =>
+    c.name.toLowerCase().includes(query)
+  ).slice(0, 15);
+
+  if (index >= 0 && index < matches.length) {
+    const c = matches[index];
+    document.getElementById("courseName").value = c.name;
+    document.getElementById("courseCategory").value = c.category;
+    document.getElementById("courseCredits").value = c.credits;
+    document.getElementById("courseOnline").value = c.online ? "true" : "false";
+  }
+  document.getElementById("autocompleteList").classList.remove("show");
+}
+
+// 键盘导航
+document.getElementById("courseName").addEventListener("keydown", function(e) {
+  const list = document.getElementById("autocompleteList");
+  if (!list.classList.contains("show")) return;
+
+  const items = list.querySelectorAll(".autocomplete-item");
+  if (e.key === "ArrowDown") {
+    e.preventDefault();
+    acSelectedIndex = Math.min(acSelectedIndex + 1, items.length - 1);
+    updateAcHighlight(items);
+  } else if (e.key === "ArrowUp") {
+    e.preventDefault();
+    acSelectedIndex = Math.max(acSelectedIndex - 1, -1);
+    updateAcHighlight(items);
+  } else if (e.key === "Enter") {
+    e.preventDefault();
+    if (acSelectedIndex >= 0) selectSuggestion(acSelectedIndex);
+  } else if (e.key === "Escape") {
+    list.classList.remove("show");
+  }
+});
+
+function updateAcHighlight(items) {
+  items.forEach((item, i) => {
+    item.classList.toggle("active", i === acSelectedIndex);
+  });
+}
+
+// 点击外部关闭
+document.addEventListener("click", function(e) {
+  if (!e.target.closest(".autocomplete-wrap")) {
+    document.getElementById("autocompleteList").classList.remove("show");
+  }
+});
+
+function saveCourse() {
+  const name = document.getElementById("courseName").value.trim();
+  const category = document.getElementById("courseCategory").value;
+  const credits = parseInt(document.getElementById("courseCredits").value);
+  const online = document.getElementById("courseOnline").value === "true";
+  const editId = document.getElementById("editCourseId").value;
+
+  if (!name) { showToast("请输入课程名称", "error"); return; }
+  if (!category) { showToast("请选择课程分类", "error"); return; }
+
+  if (editId) {
+    // 编辑
+    const idx = courses.findIndex(c => c.id === parseInt(editId));
+    if (idx >= 0) {
+      courses[idx].name = name;
+      courses[idx].category = category;
+      courses[idx].credits = credits;
+      courses[idx].online = online;
+      showToast("课程已更新 ✓", "success");
+    }
+  } else {
+    // 新增
+    const newId = courses.length > 0 ? Math.max(...courses.map(c => c.id)) + 1 : 1;
+    courses.push({ id: newId, name, category, credits, online });
+    showToast("课程已添加 ✓", "success");
+  }
+
+  saveCourses(courses);
+  closeModal();
+  renderAll();
+}
+
+function editCourse(id) {
+  const course = courses.find(c => c.id === id);
+  if (course) openModal(course);
+}
+
+function deleteCourse(id) {
+  const course = courses.find(c => c.id === id);
+  if (!course) return;
+  if (!confirm(`确定删除「${course.name}」吗？此操作不可恢复。`)) return;
+  courses = courses.filter(c => c.id !== id);
+  saveCourses(courses);
+  showToast("课程已删除", "success");
+  renderAll();
+}
+
+// ==================== Toast ====================
+function showToast(msg, type) {
+  const toast = document.createElement("div");
+  toast.className = `toast ${type}`;
+  toast.textContent = msg;
+  document.body.appendChild(toast);
+  setTimeout(() => { toast.remove(); }, 2500);
+}
+
+// ==================== 工具 ====================
+function escHtml(str) {
+  const div = document.createElement("div");
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+// 点击模态框遮罩关闭
+document.getElementById("modalOverlay").addEventListener("click", function(e) {
+  if (e.target === this) closeModal();
+});
+
+// 键盘关闭模态框
+document.addEventListener("keydown", function(e) {
+  if (e.key === "Escape") closeModal();
+});
+
+// ==================== 启动 ====================
+init();
+</script>
+</body>
+</html>
