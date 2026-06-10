@@ -2,8 +2,8 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<style>html { touch-action: manipulation; }</style>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>html { -webkit-tap-highlight-color: transparent; }</style>
 <title>📚 选修课助手</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -622,7 +622,7 @@ select.form-control {
 <body>
 
 <!-- 移动端菜单按钮和遮罩 -->
-<button class="mobile-menu-btn" onclick="toggleSidebar()">☰</button>
+<button class="mobile-menu-btn" onclick="event.stopPropagation();toggleSidebar()">☰</button>
 <div class="sidebar-backdrop" id="sidebarBackdrop" onclick="toggleSidebar()"></div>
 
 <!-- ========== 侧边栏 ========== -->
@@ -1402,7 +1402,7 @@ function filterSuggestions() {
 
   acSelectedIndex = -1;
   list.innerHTML = acMatches.map((c, i) => `
-    <div class="autocomplete-item" data-index="${i}">
+    <div class="autocomplete-item" data-index="${i}" ontouchend="selectSuggestion(${i})" onclick="selectSuggestion(${i})">
       <span class="ac-name">${highlightMatch(c.name, query)}</span>
       <span class="ac-meta">${c.category} · ${c.credits}学分 · ${c.online ? '线上' : '线下'}</span>
     </div>
