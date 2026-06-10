@@ -374,9 +374,7 @@ tbody tr:hover { background: #FFFAF8; border-radius: 12px; }
 /* ========== 模态框 ========== */
 .modal-overlay {
   display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-  background: rgba(30,27,46,0.5);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
+  background: rgba(30,27,46,0.6); /* 加深背景色，弥补去掉 blur */
   z-index: 1000;
   align-items: center; justify-content: center;
   overscroll-behavior: contain;
@@ -645,6 +643,7 @@ select.form-control {
     <div class="deerflow-signature">
       <span class="df-dot"></span>
       <a href="https://deerflow.tech" target="_blank">Deerflow</a>
+      <span style="margin-left:8px;font-size:9px;color:rgba(255,255,255,0.2)">v3</span>
     </div>
   </div>
 </aside>
