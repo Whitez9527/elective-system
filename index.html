@@ -622,8 +622,8 @@ select.form-control {
 <body>
 
 <!-- 移动端菜单按钮和遮罩 -->
-<button class="mobile-menu-btn" onclick="event.stopPropagation();toggleSidebar()">☰</button>
-<div class="sidebar-backdrop" id="sidebarBackdrop" onclick="toggleSidebar()"></div>
+<button class="mobile-menu-btn" id="mobileMenuBtn">☰</button>
+<div class="sidebar-backdrop" id="sidebarBackdrop"></div>
 
 <!-- ========== 侧边栏 ========== -->
 <aside class="sidebar" id="sidebar">
@@ -633,10 +633,10 @@ select.form-control {
     <div class="subtitle">✦ 通识 · 思政 · 双创 ✦</div>
   </div>
   <nav class="sidebar-nav">
-    <div class="nav-item active" data-page="dashboard" onclick="switchPage('dashboard', this)">
+    <div class="nav-item active" data-page="dashboard">
       <span class="nav-icon">📊</span> 学习仪表盘
     </div>
-    <div class="nav-item" data-page="courses" onclick="switchPage('courses', this)">
+    <div class="nav-item" data-page="courses">
       <span class="nav-icon">📝</span> 我的课程
     </div>
   </nav>
@@ -678,7 +678,7 @@ select.form-control {
   <div class="page" id="page-courses">
     <div class="page-header">
       <div class="page-title">📝 我的课程</div>
-      <button class="btn btn-primary" onclick="openModal()">＋ 添加课程</button>
+      <button class="btn btn-primary" id="addCourseBtn">＋ 添加课程</button>
     </div>
     <div class="card">
       <div class="table-wrap">
@@ -707,7 +707,7 @@ select.form-control {
   <div class="modal">
     <div class="modal-header">
       <h3 id="modalTitle">添加课程</h3>
-      <button class="modal-close" onclick="closeModal()">✕</button>
+      <button class="modal-close" id="modalCloseBtn">✕</button>
     </div>
     <div class="modal-body">
       <div class="form-group">
@@ -736,8 +736,8 @@ select.form-control {
       </div>
     </div>
     <div class="modal-footer">
-      <button class="btn btn-outline" onclick="closeModal()">取消</button>
-      <button class="btn btn-primary" id="modalSaveBtn" onclick="saveCourse()">保存</button>
+      <button class="btn btn-outline" id="modalCancelBtn">取消</button>
+      <button class="btn btn-primary" id="modalSaveBtn">💾 保存</button>
     </div>
   </div>
   <input type="hidden" id="editCourseId" value="">
@@ -1005,7 +1005,104 @@ let currentPage = "dashboard";
 // ==================== 初始化 ====================
 function init() {
   populateCategorySelects();
+  bindEvents();
   renderAll();
+}
+
+// ==================== 事件绑定（全部用 addEventListener，跨平台最可靠） ====================
+function bindEvents() {
+  // 汉堡菜单
+  document.getElementById("mobileMenuBtn").addEventListener("click", function(e) {
+    e.stopPropagation();
+    toggleSidebar();
+  });
+  // 遮罩关闭
+  document.getElementById("sidebarBackdrop").addEventListener("click", toggleSidebar);
+
+  // 侧边栏导航
+  document.querySelectorAll(".nav-item").forEach(function(el) {
+    el.addEventListener("click", function() {
+      switchPage(this.getAttribute("data-page"), this);
+    });
+  });
+
+  // 添加课程按钮
+  document.getElementById("addCourseBtn").addEventListener("click", function() { openModal(); });
+
+  // 模态框按钮
+  document.getElementById("modalCloseBtn").addEventListener("click", closeModal);
+  document.getElementById("modalCancelBtn").addEventListener("click", closeModal);
+  document.getElementById("modalSaveBtn").addEventListener("click", saveCourse);
+
+  // 模态框外部点击关闭
+  document.getElementById("modalOverlay").addEventListener("click", function(e) {
+    if (e.target === this) closeModal();
+  });
+
+  // 自动补全列表 - click 事件委托（最兼容）
+  document.getElementById("autocompleteList").addEventListener("click", function(e) {
+    var item = e.target.closest(".autocomplete-item");
+    if (item) {
+      e.stopPropagation();
+      selectSuggestion(parseInt(item.getAttribute("data-index")));
+    }
+  });
+
+  // 自动补全 - touchstart 作为手机快速响应补充
+  document.getElementById("autocompleteList").addEventListener("touchstart", function(e) {
+    var item = e.target.closest(".autocomplete-item");
+    if (item) {
+      e.preventDefault();
+      selectSuggestion(parseInt(item.getAttribute("data-index")));
+    }
+  }, {passive: false});
+
+  // 我的课程表格 - 编辑/删除按钮委托
+  document.getElementById("myCourseTable").addEventListener("click", function(e) {
+    var btn = e.target.closest("button");
+    if (!btn) return;
+    var id = parseInt(btn.getAttribute("data-id"));
+    if (btn.classList.contains("edit-btn")) editCourse(id);
+    if (btn.classList.contains("del-btn")) deleteCourse(id);
+    if (btn.classList.contains("empty-add-btn")) openModal();
+  });
+
+  // 推荐列表 - 快速添加按钮委托
+  document.getElementById("recommendList").addEventListener("click", function(e) {
+    var btn = e.target.closest(".quick-add-btn");
+    if (!btn) return;
+    quickAdd(
+      btn.getAttribute("data-name"),
+      btn.getAttribute("data-cat"),
+      parseInt(btn.getAttribute("data-cred")),
+      btn.getAttribute("data-online") === "true"
+    );
+  });
+
+  // 键盘导航（仅桌面）
+  document.getElementById("courseName").addEventListener("keydown", function(e) {
+    var list = document.getElementById("autocompleteList");
+    if (!list.classList.contains("show")) return;
+    var items = list.querySelectorAll(".autocomplete-item");
+    if (e.key === "ArrowDown") { e.preventDefault(); acSelectedIndex = Math.min(acSelectedIndex + 1, items.length - 1); updateAcHighlight(items); }
+    else if (e.key === "ArrowUp") { e.preventDefault(); acSelectedIndex = Math.max(acSelectedIndex - 1, -1); updateAcHighlight(items); }
+    else if (e.key === "Enter") { e.preventDefault(); if (acSelectedIndex >= 0) selectSuggestion(acSelectedIndex); }
+    else if (e.key === "Escape") { list.classList.remove("show"); }
+  });
+
+  // 点击外部关闭自动补全
+  document.addEventListener("click", function(e) {
+    if (!e.target.closest(".autocomplete-wrap")) {
+      document.getElementById("autocompleteList").classList.remove("show");
+    }
+  });
+
+  // ESC 关闭模态框
+  document.addEventListener("keydown", function(e) {
+    if (e.key === "Escape" && document.getElementById("modalOverlay").classList.contains("show")) {
+      closeModal();
+    }
+  });
 }
 
 function populateCategorySelects() {
@@ -1238,7 +1335,7 @@ function renderMyCourses() {
         <div class="empty-state">
           <div class="empty-icon">📭</div>
           <p>还没有选课记录</p>
-          <button class="btn btn-primary" style="margin-top:12px" onclick="openModal()">＋ 添加第一门课</button>
+          <button class="btn btn-primary empty-add-btn" style="margin-top:12px">＋ 添加第一门课</button>
         </div>
       </td></tr>
     `;
@@ -1250,8 +1347,8 @@ function renderMyCourses() {
         <td>${c.credits} 学分</td>
         <td><span class="tag ${c.online ? 'tag-online' : 'tag-offline'}">${c.online ? '💻 线上' : '🏫 线下'}</span></td>
         <td>
-          <button class="btn btn-outline btn-sm" onclick="editCourse(${c.id})">✏️ 编辑</button>
-          <button class="btn btn-danger btn-sm" style="margin-left:6px" onclick="deleteCourse(${c.id})">🗑 删除</button>
+          <button class="btn btn-outline btn-sm edit-btn" data-id="${c.id}">✏️ 编辑</button>
+          <button class="btn btn-danger btn-sm del-btn" style="margin-left:6px" data-id="${c.id}">🗑 删除</button>
         </td>
       </tr>
     `).join('');
@@ -1303,7 +1400,7 @@ function renderRecommendations(catStats) {
       html += `<div style="margin-bottom:14px"><strong style="font-size:14px">📌 ${cat}</strong></div>`;
       html += '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">';
       candidates.forEach(c => {
-        html += `<button class="btn btn-outline btn-sm" onclick="quickAdd('${escJs(c.name)}', '${c.category}', ${c.credits}, ${c.online})" style="text-align:left;white-space:normal;max-width:320px">➕ ${c.name}（${c.credits}学分·${c.online ? '线上' : '线下'}）</button>`;
+        html += `<button class="btn btn-outline btn-sm quick-add-btn" data-name="${escHtml(c.name)}" data-cat="${c.category}" data-cred="${c.credits}" data-online="${c.online}" style="text-align:left;white-space:normal;max-width:320px">➕ ${c.name}（${c.credits}学分·${c.online ? '线上' : '线下'}）</button>`;
       });
       html += '</div>';
     }
@@ -1316,7 +1413,7 @@ function renderRecommendations(catStats) {
       html += '<div style="margin-bottom:8px"><strong style="font-size:14px">📌 更多可选课程</strong></div>';
       html += '<div style="display:flex;gap:8px;flex-wrap:wrap">';
       allCandidates.forEach(c => {
-        html += `<button class="btn btn-outline btn-sm" onclick="quickAdd('${escJs(c.name)}', '${c.category}', ${c.credits}, ${c.online})" style="text-align:left;white-space:normal;max-width:320px">➕ ${c.name}（${c.category}·${c.credits}学分·${c.online ? '线上' : '线下'}）</button>`;
+        html += `<button class="btn btn-outline btn-sm quick-add-btn" data-name="${escHtml(c.name)}" data-cat="${c.category}" data-cred="${c.credits}" data-online="${c.online}" style="text-align:left;white-space:normal;max-width:320px">➕ ${c.name}（${c.category}·${c.credits}学分·${c.online ? '线上' : '线下'}）</button>`;
       });
       html += '</div>';
     }
@@ -1332,10 +1429,6 @@ function quickAdd(name, category, credits, online) {
   saveCourses(courses);
   showToast('已添加：' + name, 'success');
   renderDashboard();
-}
-
-function escJs(str) {
-  return str.replace(/\\/g, '\\\\').replace(/'/g, "\\'").replace(/"/g, '\\"');
 }
 
 // ==================== 模态框 ====================
@@ -1402,23 +1495,13 @@ function filterSuggestions() {
 
   acSelectedIndex = -1;
   list.innerHTML = acMatches.map((c, i) => `
-    <div class="autocomplete-item" data-index="${i}" ontouchend="selectSuggestion(${i})" onclick="selectSuggestion(${i})">
+    <div class="autocomplete-item" data-index="${i}">
       <span class="ac-name">${highlightMatch(c.name, query)}</span>
       <span class="ac-meta">${c.category} · ${c.credits}学分 · ${c.online ? '线上' : '线下'}</span>
     </div>
   `).join('');
   list.classList.add("show");
 }
-
-// 使用事件委托 + pointerdown（桌面和手机都立即响应）
-document.getElementById("autocompleteList").addEventListener("pointerdown", function(e) {
-  const item = e.target.closest(".autocomplete-item");
-  if (item) {
-    e.preventDefault(); // 阻止输入框失去焦点
-    const idx = parseInt(item.getAttribute("data-index"));
-    selectSuggestion(idx);
-  }
-});
 
 function highlightMatch(text, query) {
   const idx = text.toLowerCase().indexOf(query);
@@ -1437,40 +1520,11 @@ function selectSuggestion(index) {
   document.getElementById("autocompleteList").classList.remove("show");
 }
 
-// 键盘导航
-document.getElementById("courseName").addEventListener("keydown", function(e) {
-  const list = document.getElementById("autocompleteList");
-  if (!list.classList.contains("show")) return;
-
-  const items = list.querySelectorAll(".autocomplete-item");
-  if (e.key === "ArrowDown") {
-    e.preventDefault();
-    acSelectedIndex = Math.min(acSelectedIndex + 1, items.length - 1);
-    updateAcHighlight(items);
-  } else if (e.key === "ArrowUp") {
-    e.preventDefault();
-    acSelectedIndex = Math.max(acSelectedIndex - 1, -1);
-    updateAcHighlight(items);
-  } else if (e.key === "Enter") {
-    e.preventDefault();
-    if (acSelectedIndex >= 0) selectSuggestion(acSelectedIndex);
-  } else if (e.key === "Escape") {
-    list.classList.remove("show");
-  }
-});
-
 function updateAcHighlight(items) {
   items.forEach((item, i) => {
     item.classList.toggle("active", i === acSelectedIndex);
   });
 }
-
-// 点击外部关闭
-document.addEventListener("click", function(e) {
-  if (!e.target.closest(".autocomplete-wrap")) {
-    document.getElementById("autocompleteList").classList.remove("show");
-  }
-});
 
 function saveCourse() {
   const name = document.getElementById("courseName").value.trim();
@@ -1534,16 +1588,6 @@ function escHtml(str) {
   div.textContent = str;
   return div.innerHTML;
 }
-
-// 点击模态框遮罩关闭
-document.getElementById("modalOverlay").addEventListener("click", function(e) {
-  if (e.target === this) closeModal();
-});
-
-// 键盘关闭模态框
-document.addEventListener("keydown", function(e) {
-  if (e.key === "Escape") closeModal();
-});
 
 // ==================== 启动 ====================
 init();
