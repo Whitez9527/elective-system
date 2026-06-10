@@ -673,7 +673,7 @@ select.form-control {
   <div class="page" id="page-courses">
     <div class="page-header">
       <div class="page-title">📝 我的课程</div>
-      <button class="btn btn-primary" id="addCourseBtn" onclick="var o=document.getElementById('modalOverlay');o.style.display='flex';o.style.opacity='1';o.style.visibility='visible';document.body.style.overflow='hidden';">＋ 添加课程</button>
+      <button class="btn btn-primary" id="addCourseBtn">＋ 添加课程</button>
     </div>
     <div class="card">
       <div class="table-wrap">
@@ -695,16 +695,14 @@ select.form-control {
   </div>
 
 
-</main>
-
-<!-- ========== 模态框 ========== -->
-<div class="modal-overlay" id="modalOverlay">
-  <div class="modal">
-    <div class="modal-header">
-      <h3 id="modalTitle">添加课程</h3>
-      <button class="modal-close" id="modalCloseBtn">✕</button>
+  <!-- ===== 添加/编辑课程 ===== -->
+  <div class="page" id="page-add">
+    <div class="page-header" style="flex-direction:row;align-items:center;flex-wrap:nowrap">
+      <button class="btn btn-outline btn-sm" id="addBackBtn">← 返回</button>
+      <div class="page-title" id="addPageTitle">添加课程</div>
+      <span></span>
     </div>
-    <div class="modal-body">
+    <div class="card">
       <div class="form-group">
         <label>课程名称 *</label>
         <div class="autocomplete-wrap">
@@ -729,15 +727,16 @@ select.form-control {
           </select>
         </div>
       </div>
+      <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:8px">
+        <button class="btn btn-outline" id="addCancelBtn">取消</button>
+        <button class="btn btn-primary" id="addSaveBtn">💾 保存</button>
+      </div>
     </div>
-    <div class="modal-footer">
-      <button class="btn btn-outline" id="modalCancelBtn">取消</button>
-      <button class="btn btn-primary" id="modalSaveBtn">💾 保存</button>
-    </div>
+    <input type="hidden" id="editCourseId" value="">
+    <input type="hidden" id="courseOnline" value="false">
   </div>
-  <input type="hidden" id="editCourseId" value="">
-  <input type="hidden" id="courseOnline" value="false">
-</div>
+
+</main>
 
 <script>
 // ==================== 常量 ====================
@@ -1041,18 +1040,13 @@ function bindEvents() {
     openModal();
   });
 
-  // 模态框按钮
-  document.getElementById("modalCloseBtn").addEventListener("click", closeModal);
-  document.getElementById("modalCloseBtn").addEventListener("touchend", function(e) { e.preventDefault(); closeModal(); });
-  document.getElementById("modalCancelBtn").addEventListener("click", closeModal);
-  document.getElementById("modalCancelBtn").addEventListener("touchend", function(e) { e.preventDefault(); closeModal(); });
-  document.getElementById("modalSaveBtn").addEventListener("click", saveCourse);
-  document.getElementById("modalSaveBtn").addEventListener("touchend", function(e) { e.preventDefault(); saveCourse(); });
-
-  // 模态框外部点击关闭
-  document.getElementById("modalOverlay").addEventListener("click", function(e) {
-    if (e.target === this) closeModal();
-  });
+  // 添加页 - 返回/取消/保存按钮
+  document.getElementById("addBackBtn").addEventListener("click", closeModal);
+  document.getElementById("addBackBtn").addEventListener("touchend", function(e) { e.preventDefault(); closeModal(); });
+  document.getElementById("addCancelBtn").addEventListener("click", closeModal);
+  document.getElementById("addCancelBtn").addEventListener("touchend", function(e) { e.preventDefault(); closeModal(); });
+  document.getElementById("addSaveBtn").addEventListener("click", saveCourse);
+  document.getElementById("addSaveBtn").addEventListener("touchend", function(e) { e.preventDefault(); saveCourse(); });
 
   // 自动补全列表 - click 事件委托
   document.getElementById("autocompleteList").addEventListener("click", function(e) {
@@ -1142,9 +1136,9 @@ function repositionAutocomplete() {
   list.style.width = rect.width + 'px';
 }
 
-// ESC 关闭模态框
+// ESC 返回课程列表
 document.addEventListener("keydown", function(e) {
-  if (e.key === "Escape" && document.getElementById("modalOverlay").classList.contains("show")) {
+  if (e.key === "Escape" && document.getElementById("page-add").classList.contains("active")) {
     closeModal();
   }
 });
@@ -1475,20 +1469,17 @@ function quickAdd(name, category, credits, online) {
   renderDashboard();
 }
 
-// ==================== 模态框 ====================
+// ==================== 添加/编辑课程页 ====================
 function openModal(courseData) {
-  var overlay = document.getElementById("modalOverlay");
-  if (!overlay) { alert("错误：找不到 modalOverlay 元素"); return; }
-  overlay.classList.add("show");
-  overlay.style.display = "flex";  // 移动端强制显示
-  overlay.style.opacity = "1";
-  overlay.style.visibility = "visible";
-  document.body.style.overflow = "hidden"; // 防止背景滚动
+  // 显示添加页面
+  document.querySelectorAll(".page").forEach(function(p) { p.classList.remove("active"); });
+  document.getElementById("page-add").classList.add("active");
+  document.body.style.overflow = "hidden";
 
   if (courseData) {
     // 编辑模式
-    document.getElementById("modalTitle").textContent = "编辑课程";
-    document.getElementById("modalSaveBtn").textContent = "💾 更新";
+    document.getElementById("addPageTitle").textContent = "编辑课程";
+    document.getElementById("addSaveBtn").textContent = "💾 更新";
     document.getElementById("editCourseId").value = courseData.id;
     document.getElementById("courseName").value = courseData.name;
     document.getElementById("courseCategory").value = courseData.category;
@@ -1496,28 +1487,28 @@ function openModal(courseData) {
     document.getElementById("courseOnline").value = courseData.online ? "true" : "false";
   } else {
     // 新增模式
-    document.getElementById("modalTitle").textContent = "添加课程";
-    document.getElementById("modalSaveBtn").textContent = "💾 保存";
+    document.getElementById("addPageTitle").textContent = "添加课程";
+    document.getElementById("addSaveBtn").textContent = "💾 保存";
     document.getElementById("editCourseId").value = "";
     document.getElementById("courseName").value = "";
     document.getElementById("courseCategory").value = "";
     document.getElementById("courseCredits").value = "2";
     document.getElementById("courseOnline").value = "false";
   }
-  // 移动端延迟聚焦，等动画完成
+  // 延迟聚焦
   setTimeout(function() {
     document.getElementById("courseName").focus();
   }, 400);
 }
 
 function closeModal() {
-  var overlay = document.getElementById("modalOverlay");
-  overlay.classList.remove("show");
-  overlay.style.display = "none";  // 配合 openModal 的内联样式
-  overlay.style.opacity = "";
-  overlay.style.visibility = "";
+  // 返回我的课程页
+  document.querySelectorAll(".page").forEach(function(p) { p.classList.remove("active"); });
+  document.getElementById("page-courses").classList.add("active");
+  document.body.style.overflow = "";
   document.getElementById("autocompleteList").classList.remove("show");
-  document.body.style.overflow = ""; // 恢复背景滚动
+  currentPage = "courses";
+  renderMyCourses();
 }
 
 // ==================== 自动补全 ====================
